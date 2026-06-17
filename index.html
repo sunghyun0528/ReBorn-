@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 말투 동기화</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f7f8fa;
+  --surface: #fff;
+  --surface2: #f0f2f5;
+  --border: #e2e6ea;
+  --accent: #3b9eff;
+  --mint: #2ec4b6;
+  --accent-light: rgba(59,158,255,.10);
+  --text: #1a1d23;
+  --dim: #5a6070;
+  --muted: #aab0bb;
+  --r: 12px;
+  --rs: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Noto Sans KR', sans-serif; min-height: 100vh; padding-bottom: 80px; }
+
+/* Header */
+.hdr { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 0; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 8px rgba(0,0,0,.06); }
+.hdr-in { max-width: 680px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; gap: 12px; }
+.badge { background: var(--mint); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 100px; letter-spacing: .5px; }
+.hdr h1 { font-size: 15px; font-weight: 700; }
+
+/* Progress */
+.prog { max-width: 680px; margin: 0 auto; padding: 16px 24px 0; }
+.prog-track { height: 3px; background: var(--border); border-radius: 100px; overflow: hidden; }
+.prog-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--mint)); border-radius: 100px; transition: width .5s; }
+.prog-row { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+/* Main */
+.main { max-width: 680px; margin: 0 auto; padding: 0 24px; }
+
+/* Section */
+.sec { margin-top: 32px; display: none; animation: up .35s ease forwards; }
+.sec.on { display: block; }
+@keyframes up { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+/* Section header */
+.sec-hdr { margin-bottom: 6px; }
+.sec-hdr h2 { font-size: 22px; font-weight: 900; }
+.sec-hdr p { font-size: 14px; color: var(--dim); margin-top: 6px; line-height: 1.6; }
+
+/* Track badge */
+.track-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 100px; margin-bottom: 16px; }
+.track-a { background: rgba(59,158,255,.12); color: var(--accent); }
+.track-b { background: rgba(46,196,182,.12); color: var(--mint); }
+.track-c { background: rgba(255,179,71,.12); color: #e07b00; }
+
+/* Field */
+.field { margin-bottom: 24px; }
+.flbl { font-size: 13px; font-weight: 600; color: var(--dim); margin-bottom: 9px; display: flex; align-items: center; gap: 6px; }
+.req { color: var(--accent); font-size: 11px; }
+.opt { color: var(--muted); font-size: 11px; font-weight: 400; }
+.hint { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.55; }
+
+/* Inputs */
+input[type=text], input[type=number], textarea {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--rs); color: var(--text); font-family: 'Noto Sans KR', sans-serif;
+  font-size: 14px; padding: 11px 14px; outline: none; transition: border-color .2s, box-shadow .2s;
+}
+input[type=text]:focus, input[type=number]:focus, textarea:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,158,255,.10);
+}
+textarea { resize: vertical; min-height: 86px; line-height: 1.6; }
+
+/* Upload zone */
+.upload-area { border: 2px dashed var(--border); border-radius: var(--r); padding: 28px 20px; text-align: center; background: var(--surface2); cursor: pointer; transition: all .2s; }
+.upload-area:hover, .upload-area.over { border-color: var(--accent); background: var(--accent-light); }
+.upload-area input { display: none; }
+.upload-icon { font-size: 30px; margin-bottom: 8px; }
+.upload-text { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.upload-sub { font-size: 12px; color: var(--muted); }
+
+/* Image grid */
+.img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+.img-card { position: relative; border-radius: var(--rs); overflow: hidden; border: 1px solid var(--border); aspect-ratio: 9/16; background: var(--surface2); }
+.img-card img { width: 100%; height: 100%; object-fit: cover; }
+.img-card .del { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,.55); color: #fff; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.img-count { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; font-size: 12px; color: var(--dim); }
+.img-count span { font-family: 'DM Mono', monospace; }
+.count-num { font-weight: 700; color: var(--accent); }
+
+/* Track selector cards */
+.track-cards { display: flex; flex-direction: column; gap: 10px; }
+.tc {
+  display: flex; align-items: flex-start; gap: 14px;
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: var(--r); padding: 16px; cursor: pointer;
+  transition: all .2s; user-select: none;
+}
+.tc:hover { border-color: #bcd0e8; background: #f6f9ff; }
+.tc-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
+.tc-body { flex: 1; }
+.tc-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.tc-desc { font-size: 13px; color: var(--dim); line-height: 1.5; }
+.tc-arrow { font-size: 18px; color: var(--muted); flex-shrink: 0; margin-top: 4px; }
+
+/* Sample review for track B */
+.sample-pair { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 16px; margin-bottom: 12px; }
+.sample-lbl { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+.sample-rev { background: var(--bg); border: 1px solid var(--border); border-radius: var(--rs); padding: 10px 13px; font-size: 13px; color: var(--dim); line-height: 1.55; margin-bottom: 10px; }
+.sample-star { color: #f5a623; font-size: 13px; margin-bottom: 6px; }
+
+/* Radio card */
+.rg { display: flex; flex-direction: column; gap: 8px; }
+.rc {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--rs); padding: 12px 14px; cursor: pointer;
+  transition: all .2s; user-select: none;
+}
+.rc:hover { border-color: #bcd0e8; background: #f5f8ff; }
+.rc.sel { border-color: var(--accent); background: var(--accent-light); }
+.rdot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+.rc.sel .rdot { border-color: var(--accent); }
+.rinn { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: none; }
+.rc.sel .rinn { display: block; }
+
+/* Checkbox */
+.cc {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--rs); padding: 12px 14px; cursor: pointer;
+  transition: all .2s; user-select: none;
+}
+.cc:hover { border-color: #bcd0e8; background: #f5f8ff; }
+.cc.sel { border-color: var(--accent); background: var(--accent-light); }
+.cbox { width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; font-size: 11px; transition: all .2s; }
+.cc.sel .cbox { border-color: var(--accent); background: var(--accent); color: #fff; }
+
+/* Tag chip */
+.tg { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 100px; padding: 6px 15px; font-size: 13px;
+  cursor: pointer; transition: all .2s; user-select: none;
+}
+.chip:hover { border-color: #aac8e8; }
+.chip.sel { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+
+/* Instr tags */
+.itags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.itag { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 13px; font-size: 12px; cursor: pointer; transition: all .2s; user-select: none; }
+.itag:hover { border-color: #aac8e8; }
+.itag.sel { background: rgba(46,196,182,.1); border-color: var(--mint); color: #1a9e96; font-weight: 600; }
+
+/* Divider */
+hr.div { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+/* Result box */
+.res-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 20px; margin-top: 16px; }
+.res-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); gap: 14px; }
+.res-row:last-child { border-bottom: none; }
+.res-k { font-size: 11px; color: var(--muted); min-width: 110px; flex-shrink: 0; font-family: 'DM Mono', monospace; line-height: 1.5; }
+.res-v { font-size: 13px; color: var(--text); line-height: 1.6; text-align: right; flex: 1; }
+
+/* Nav */
+.nav { display: flex; justify-content: space-between; align-items: center; margin-top: 32px; gap: 10px; }
+.btn { border: none; border-radius: var(--rs); cursor: pointer; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; font-weight: 700; padding: 13px 24px; transition: all .2s; }
+.btn-back { background: var(--surface2); border: 1px solid var(--border); color: var(--dim); }
+.btn-back:hover { border-color: #aac8e8; color: var(--text); }
+.btn-next { background: var(--accent); color: #fff; flex: 1; max-width: 260px; }
+.btn-next:hover { background: #2288ee; transform: translateY(-1px); }
+.btn-copy { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--rs); color: var(--dim); cursor: pointer; font-family: 'DM Mono', monospace; font-size: 12px; padding: 8px 16px; transition: all .2s; margin-top: 14px; width: 100%; }
+.btn-copy:hover { border-color: var(--accent); color: var(--accent); }
+.btn-skip { background: none; border: 1px dashed var(--border); border-radius: var(--rs); color: var(--muted); cursor: pointer; font-size: 12px; padding: 8px 16px; transition: all .2s; font-family: 'Noto Sans KR', sans-serif; }
+.btn-skip:hover { border-color: var(--muted); color: var(--dim); }
+
+/* Done */
+.done-icon { font-size: 44px; text-align: center; margin-bottom: 8px; }
+.done-ttl { font-size: 22px; font-weight: 900; text-align: center; margin-bottom: 6px; }
+.done-sub { font-size: 13px; color: var(--dim); text-align: center; margin-bottom: 24px; line-height: 1.6; }
+
+/* Notice box */
+.notice { background: rgba(59,158,255,.07); border: 1px solid rgba(59,158,255,.2); border-radius: var(--rs); padding: 12px 15px; font-size: 13px; color: #2266bb; line-height: 1.6; margin-bottom: 20px; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* Emoji picker (트랙 C) */
+.epick-btn {
+  font-size: 22px; padding: 6px 8px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; cursor: pointer; transition: all .2s; line-height: 1;
+  user-select: none;
+}
+.epick-btn:hover { border-color: #aac8e8; transform: scale(1.1); }
+.epick-btn.sel { border-color: var(--accent); background: var(--accent-light); }
+
+/* Landing */
+.landing {
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; padding: 20px 0 40px; min-height: calc(100vh - 120px);
+  justify-content: center;
+}
+.logo-wrap { margin-bottom: 24px; }
+.logo-svg { width: 120px; height: 120px; filter: drop-shadow(0 8px 24px rgba(0,0,0,.18)); }
+
+.brand-name { font-size: 42px; font-weight: 900; letter-spacing: -1px; line-height: 1; margin-bottom: 6px; }
+.brand-re   { color: #2ec4b6; }
+.brand-born { color: #ff4040; }
+.brand-tagline { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 36px; }
+
+.main-copy { margin-bottom: 28px; }
+.copy-main { font-size: 26px; font-weight: 900; line-height: 1.35; margin-bottom: 14px; color: var(--text); }
+.copy-sub  { font-size: 14px; color: var(--dim); line-height: 1.75; }
+.copy-sub b { color: var(--text); }
+
+.feat-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 36px; }
+.feat-chip {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 100px; padding: 7px 16px; font-size: 13px; font-weight: 600; color: var(--dim);
+}
+
+.btn-start {
+  background: linear-gradient(135deg, #ff4040, #ff6b35);
+  color: #fff; border: none; border-radius: 14px;
+  font-size: 17px; font-weight: 800; font-family: 'Noto Sans KR', sans-serif;
+  padding: 16px 48px; cursor: pointer; display: flex; align-items: center; gap: 10px;
+  box-shadow: 0 8px 24px rgba(255,64,64,.35);
+  transition: all .2s; margin-bottom: 20px;
+}
+.btn-start:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(255,64,64,.45); }
+.btn-arrow { font-size: 20px; transition: transform .2s; }
+.btn-start:hover .btn-arrow { transform: translateX(4px); }
+
+.landing-footer { font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-in">
+    <span class="badge">BAEMIN DNA</span>
+    <h1>AI 말투 동기화</h1>
+  </div>
+</div>
+
+<div class="prog">
+  <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+  <div class="prog-row"><span id="progTxt"></span><span id="progPct"></span></div>
+</div>
+
+<div class="main">
+
+<!-- ══════════════════════════════
+  MAIN — 랜딩 페이지
+══════════════════════════════ -->
+<div class="sec" id="sMain" style="margin-top:0;padding-top:0">
+  <div class="landing">
+
+    <!-- 리본 SVG 로고 -->
+    <div class="logo-wrap">
+      <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" class="logo-svg">
+        <defs>
+          <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#1a1a2e"/>
+            <stop offset="100%" stop-color="#0d0d1a"/>
+          </radialGradient>
+          <linearGradient id="ribbon1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ff6b35"/>
+            <stop offset="100%" stop-color="#ff3b3b"/>
+          </linearGradient>
+          <linearGradient id="ribbon2" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#00c8a0"/>
+            <stop offset="100%" stop-color="#1ac5a0"/>
+          </linearGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+            <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- 배경 원 -->
+        <circle cx="80" cy="80" r="75" fill="url(#bgGrad)"/>
+
+        <!-- 리본 왼쪽 루프 (배민 민트) -->
+        <path d="M80 80 C60 55, 28 50, 25 70 C22 88, 48 95, 65 82 Z"
+              fill="url(#ribbon2)" opacity="0.92" filter="url(#glow)"/>
+        <path d="M80 80 C62 58, 30 54, 27 72 C25 87, 50 93, 67 81 Z"
+              fill="none" stroke="#fff" stroke-width="0.5" opacity="0.3"/>
+
+        <!-- 리본 오른쪽 루프 (빨간) -->
+        <path d="M80 80 C100 55, 132 50, 135 70 C138 88, 112 95, 95 82 Z"
+              fill="url(#ribbon1)" opacity="0.92" filter="url(#glow)"/>
+        <path d="M80 80 C98 58, 130 54, 133 72 C135 87, 110 93, 93 81 Z"
+              fill="none" stroke="#fff" stroke-width="0.5" opacity="0.3"/>
+
+        <!-- 리본 아래 왼쪽 꼬리 (배민 민트) -->
+        <path d="M80 84 C68 92, 50 115, 42 130 C50 128, 62 118, 76 100 Z"
+              fill="url(#ribbon2)" opacity="0.85"/>
+
+        <!-- 리본 아래 오른쪽 꼬리 (빨간) -->
+        <path d="M80 84 C92 92, 110 115, 118 130 C110 128, 98 118, 84 100 Z"
+              fill="url(#ribbon1)" opacity="0.85"/>
+
+        <!-- 중앙 매듭 -->
+        <ellipse cx="80" cy="81" rx="10" ry="9"
+                 fill="#fff" opacity="0.15"/>
+        <ellipse cx="80" cy="81" rx="7" ry="6"
+                 fill="#fff" opacity="0.9" filter="url(#glow)"/>
+        <ellipse cx="80" cy="80" rx="4" ry="3.5"
+                 fill="#f0f0f0"/>
+
+        <!-- 광택 -->
+        <ellipse cx="68" cy="62" rx="5" ry="3" fill="#fff" opacity="0.18" transform="rotate(-20 68 62)"/>
+        <ellipse cx="92" cy="62" rx="5" ry="3" fill="#fff" opacity="0.18" transform="rotate(20 92 62)"/>
+      </svg>
+    </div>
+
+    <!-- 브랜드명 -->
+    <div class="brand-name">
+      <span class="brand-re">Re</span><span class="brand-born">Born!</span>
+    </div>
+    <div class="brand-tagline">AI Review Reply</div>
+
+    <!-- 메인 카피 -->
+    <div class="main-copy">
+      <p class="copy-main">사장님의 말투가<br>AI로 다시 태어납니다</p>
+      <p class="copy-sub">리뷰 하나하나에 담긴 사장님만의 언어·이모지·감정 온도를<br>AI가 학습해 똑같이 재현합니다.<br>로봇 같은 답글은 이제 그만, 손님이 느끼는 건 <b>사람</b>입니다.</p>
+    </div>
+
+    <!-- 기능 뱃지 -->
+    <div class="feat-row">
+      <div class="feat-chip">🧬 말투 DNA 복제</div>
+      <div class="feat-chip">🚫 AI 냄새 제거</div>
+      <div class="feat-chip">⚡ 즉시 생성</div>
+    </div>
+
+    <!-- 시작 버튼 -->
+    <button class="btn-start" onclick="go('0')">
+      시작하기
+      <span class="btn-arrow">→</span>
+    </button>
+
+    <div class="landing-footer">배달의민족 · 쿠팡이츠 사장님 전용</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════
+  STEP 0 — 매장 기본 정보
+══════════════════════════════ -->
+<div class="sec" id="s0">
+  <div class="sec-hdr">
+    <h2>매장 정보 입력</h2>
+    <p>AI가 답글을 생성할 때 필요한 기본 정보입니다.</p>
+  </div>
+
+  <div class="field" style="margin-top:24px">
+    <div class="flbl">매장명 <span class="req">필수</span></div>
+    <input type="text" id="storeName" placeholder="ex) 육회바른연어 군포산본점">
+  </div>
+
+  <div class="field">
+    <div class="flbl">업종 <span class="req">필수</span></div>
+    <div class="tg" id="catGroup">
+      <div class="chip" data-v="한식">한식</div>
+      <div class="chip" data-v="중식">중식</div>
+      <div class="chip" data-v="일식">일식</div>
+      <div class="chip" data-v="양식">양식</div>
+      <div class="chip" data-v="분식">분식</div>
+      <div class="chip" data-v="요리주점">요리주점</div>
+      <div class="chip" data-v="카페·디저트">카페·디저트</div>
+      <div class="chip" data-v="치킨·피자">치킨·피자</div>
+      <div class="chip" data-v="기타" id="catEtc">기타</div>
+    </div>
+    <div id="catEtcWrap" style="display:none;margin-top:10px">
+      <input type="text" id="catEtcVal" placeholder="업종을 직접 입력해주세요">
+    </div>
+  </div>
+
+  <div class="field">
+    <div class="flbl">대표메뉴 <span class="req">필수</span></div>
+    <input type="text" id="mainMenu" placeholder="ex) 육회덮밥, 연어무한리필">
+  </div>
+
+  <div class="field">
+    <div class="flbl">매장 위치 <span class="req">필수</span></div>
+    <input type="text" id="location" placeholder="ex) 경기도 군포시 산본동">
+  </div>
+
+  <div class="field">
+    <div class="flbl">답글 길이 <span class="req">필수</span></div>
+    <div class="hint" style="margin-bottom:10px">생성할 답글의 대략적인 길이를 선택해주세요</div>
+    <div class="tg" id="replyLenGroup">
+      <div class="chip" data-g="replyLen" data-v="100자 이하 (짧고 임팩트 있게)">100자 이하</div>
+      <div class="chip" data-g="replyLen" data-v="200자 내외 (적당한 성의 표현)">200자 내외</div>
+      <div class="chip" data-g="replyLen" data-v="300자 이상 (충분한 감사·설명)">300자 이상</div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div></div>
+    <button class="btn btn-next" onclick="go('track')">다음 →</button>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════
+  STEP TRACK — 방식 선택
+══════════════════════════════ -->
+<div class="sec" id="sTrack">
+  <div class="sec-hdr">
+    <h2>사장님 답글 스타일<br>어떻게 알려주실 건가요?</h2>
+    <p>아래 세 가지 방법 중 가장 편한 방법을 선택해주세요.<br>캡처가 많을수록 AI가 더 정확하게 말투를 복제합니다.</p>
+  </div>
+
+  <div class="track-cards" style="margin-top:24px">
+    <div class="tc" onclick="go('A1')">
+      <div class="tc-icon">📸</div>
+      <div class="tc-body">
+        <div class="tc-title">배민 답글 캡처로 알려줄게요</div>
+        <div class="tc-desc">직접 쓴 답글 화면을 캡처해서 올려주세요.<br><b>가장 정확한 방법입니다.</b> 최소 3장, 최대 10장</div>
+      </div>
+      <div class="tc-arrow">›</div>
+    </div>
+
+    <div class="tc" onclick="go('B1')">
+      <div class="tc-icon">✍️</div>
+      <div class="tc-body">
+        <div class="tc-title">기존 답글이 마음에 안들어요 / 답글을 안 달았어요</div>
+        <div class="tc-desc">예시 리뷰 3개에 직접 답글을 써주세요.<br>AI가 그 말투를 그대로 학습합니다.</div>
+      </div>
+      <div class="tc-arrow">›</div>
+    </div>
+
+    <div class="tc" onclick="go('C1')">
+      <div class="tc-icon">📋</div>
+      <div class="tc-body">
+        <div class="tc-title">직접 작성도 어려워요</div>
+        <div class="tc-desc">간단한 설문만으로 AI가 스타일을 맞춰드립니다.</div>
+      </div>
+      <div class="tc-arrow">›</div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="btn btn-back" onclick="go('0')">← 이전</button>
+    <div></div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════
+  TRACK A — 캡처 업로드
+══════════════════════════════ -->
+<div class="sec" id="sA1">
+  <span class="track-badge track-a">📸 트랙 A — 캡처 업로드</span>
+  <div class="sec-hdr">
+    <h2>답글 캡처를 올려주세요</h2>
+    <p>AI가 사장님의 말투, 이모지 습관, 문장 구조를 자동으로 분석합니다.<br>
+    <b>한 캡처에 리뷰 1개 + 사장님 답글 1개</b>가 담긴 화면으로 올려주세요.</p>
+  </div>
+
+  <div class="notice">
+    📌 캡처는 최소 3장 이상 올려주셔야 분석이 가능합니다.<br>
+    많을수록 더 정확하게 말투를 복제할 수 있습니다. <b>(최대 10장)</b>
+  </div>
+
+  <div class="upload-area" id="uploadZone" onclick="document.getElementById('imgInput').click()">
+    <input type="file" id="imgInput" accept="image/*" multiple onchange="handleUpload(event)">
+    <div class="upload-icon">📷</div>
+    <div class="upload-text">여기를 눌러 캡처 이미지 업로드</div>
+    <div class="upload-sub">JPG · PNG · WEBP · 드래그앤드롭 가능</div>
+  </div>
+
+  <div id="imgGrid" class="img-grid"></div>
+  <div class="img-count" id="imgCount" style="display:none">
+    <span>업로드된 캡처 <span class="count-num" id="imgNum">0</span>장</span>
+    <span style="color:var(--muted)">최소 3장 / 최대 10장</span>
+  </div>
+
+  <div class="nav" style="margin-top:28px">
+    <button class="btn btn-back" onclick="go('track')">← 이전</button>
+    <button class="btn btn-next" id="btnA1Next" onclick="go('done')" style="opacity:.4;pointer-events:none">분석 완료 →</button>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════
+  TRACK B — 직접 작성
+══════════════════════════════ -->
+<div class="sec" id="sB1">
+  <span class="track-badge track-b">✍️ 트랙 B — 직접 작성</span>
+  <div class="sec-hdr">
+    <h2>예시 리뷰에 직접 답글을<br>써주세요</h2>
+    <p>실제로 손님이 남긴 것처럼 작성된 예시 리뷰입니다.<br>
+    <b>사장님이 직접 매장에서 답글을 달듯이 진심으로</b> 작성해주세요.<br>
+    AI가 그 말투를 그대로 학습합니다.</p>
+  </div>
+
+  <div class="sample-pair">
+    <div class="sample-lbl">예시 리뷰 1</div>
+    <div class="sample-star" id="star1">★★★★★</div>
+    <div class="sample-nick" id="nick1" style="font-size:13px;font-weight:700;color:var(--dim);margin-bottom:6px">하늘별달</div>
+    <div class="sample-rev" id="rev1"></div>
+    <div class="flbl" style="margin-bottom:8px">사장님 답글 <span class="req">필수</span></div>
+    <textarea class="b-answer" placeholder="직접 답글을 써주세요…" style="min-height:80px"></textarea>
+  </div>
+
+  <div class="sample-pair">
+    <div class="sample-lbl">예시 리뷰 2</div>
+    <div class="sample-star" id="star2">★★★★☆</div>
+    <div class="sample-nick" id="nick2" style="font-size:13px;font-weight:700;color:var(--dim);margin-bottom:6px">감자튀김러버</div>
+    <div class="sample-rev" id="rev2"></div>
+    <div class="flbl" style="margin-bottom:8px">사장님 답글 <span class="req">필수</span></div>
+    <textarea class="b-answer" placeholder="직접 답글을 써주세요…" style="min-height:80px"></textarea>
+  </div>
+
+  <div class="sample-pair">
+    <div class="sample-lbl">예시 리뷰 3</div>
+    <div class="sample-star" id="star3">★★★★★</div>
+    <div class="sample-nick" id="nick3" style="font-size:13px;font-weight:700;color:var(--dim);margin-bottom:6px">바다향기</div>
+    <div class="sample-rev" id="rev3"></div>
+    <div class="flbl" style="margin-bottom:8px">사장님 답글 <span class="req">필수</span></div>
+    <textarea class="b-answer" placeholder="직접 답글을 써주세요…" style="min-height:80px"></textarea>
+  </div>
+
+  <div class="nav">
+    <button class="btn btn-back" onclick="go('track')">← 이전</button>
+    <button class="btn btn-next" onclick="go('done')">완료 →</button>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════
+  TRACK C — 최소 설문
+══════════════════════════════ -->
+<div class="sec" id="sC1">
+  <span class="track-badge track-c">📋 트랙 C — 설문</span>
+  <div class="sec-hdr">
+    <h2>몇 가지만 답해주세요</h2>
+    <p>꼭 필요한 것만 물어볼게요.</p>
+  </div>
+
+  <div class="field" style="margin-top:24px">
+    <div class="flbl">답글 유형 선택 <span class="req">필수</span></div>
+    <div class="hint" style="margin-bottom:12px">사장님 답글의 전반적인 톤앤매너를 선택해주세요</div>
+    <div class="rg">
+      <div class="rc" data-g="vibe" data-v="유쾌한 — 이모지 적극 활용, 손님과 티키타카하는 에너지 넘치는 답글" onclick="pickR(this)">
+        <div class="rdot"><div class="rinn"></div></div>
+        <div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px">😄 유쾌한</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.5">이모지를 적극 활용하고 손님 리뷰에 맞받아치듯 반응하는 에너지 넘치는 스타일</div>
+          <div style="font-size:12px;color:var(--accent);margin-top:4px;font-style:italic">"오늘도 맛있게 드셨다니 저도 너무 신났어요😆💛 다음에 꼭 또 와주세요!!"</div>
+        </div>
+      </div>
+      <div class="rc" data-g="vibe" data-v="친근한 — 편안하고 따뜻하게, 동네 단골 느낌의 답글" onclick="pickR(this)">
+        <div class="rdot"><div class="rinn"></div></div>
+        <div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px">🤗 친근한</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.5">부담 없이 편안하고 따뜻한 톤으로, 동네 단골 손님에게 말 걸듯 자연스러운 스타일</div>
+          <div style="font-size:12px;color:var(--accent);margin-top:4px;font-style:italic">"항상 찾아주셔서 진심으로 감사해요😊 오늘도 맛있게 드셨으면 좋겠습니다!"</div>
+        </div>
+      </div>
+      <div class="rc" data-g="vibe" data-v="정중한 — 격식을 갖추고 신뢰감 있는 깔끔한 답글" onclick="pickR(this)">
+        <div class="rdot"><div class="rinn"></div></div>
+        <div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px">🤝 정중한</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.5">감정보다 내용을 앞세우고 신뢰감 있는 어조로, 과하지 않게 격식을 갖춘 스타일</div>
+          <div style="font-size:12px;color:var(--accent);margin-top:4px;font-style:italic">"소중한 후기 감사드립니다. 앞으로도 좋은 품질로 보답하겠습니다."</div>
+        </div>
+      </div>
+      <div class="rc" data-g="vibe" data-v="진중한 — 음식과 서비스에 대한 자부심을 담은 묵직한 답글" onclick="pickR(this)">
+        <div class="rdot"><div class="rinn"></div></div>
+        <div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px">🍽️ 진중한</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.5">음식에 대한 철학과 자부심이 답글에 자연스럽게 배어나는, 과묵하고 신뢰감 있는 스타일</div>
+          <div style="font-size:12px;color:var(--accent);margin-top:4px;font-style:italic">"당일 입고한 재료만 사용하는 원칙을 지키고 있습니다. 맛있게 드셨다니 그 원칙이 전달된 것 같아 만족스럽습니다."</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="div">
+
+  <div class="field">
+    <div class="flbl">사용하는 이모지 <span class="req">필수</span></div>
+    <div class="hint" style="margin-bottom:10px">자주 쓰는 이모지를 직접 입력하거나 아래 후보에서 골라주세요. 없으면 "안 씀"을 선택해주세요.</div>
+    <div class="epick-wrap" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px" id="emojiPicker">
+      <span class="epick-btn" onclick="toggleEmojiPick(this)">😊</span>
+      <span class="epick-btn" onclick="toggleEmojiPick(this)">😁</span>
+      <span class="epick-btn" onclick="toggleEmojiPick(this)">🥰</span>
+      <span class="epick-btn" onclick="toggleEmojiPick(this)">😍</span>
+      <span class="epick-btn" onclick="toggleEmojiPick(this)">😄</span>
+      <span class="epick-btn" onclick="toggleEmojiPick(this)">🥺</span>
+      <span class="epick-btn" onclick="toggleEmojiPick(this)">😭</span>
+      <span class="epick-btn" onclick="toggleEmojiPick(this)">😔</span>
+      <span class="epick-btn" onclick="toggleEmojiPick(this)">🙏</span>
+      <span class="epick-btn" onclick="toggleEmojiPick(this)">❤️</span>
+      <span class="epick-btn" onclick="toggleEmojiPick(this)">💛</span>
+      <span class="epick-btn" onclick="toggleEmojiPick(this)">💕</span>
+      <span class="epick-btn" onclick="toggleEmojiPick(this)">✨</span>
+      <span class="epick-btn" onclick="toggleEmojiPick(this)">🎉</span>
+      <span class="epick-btn" onclick="toggleEmojiPick(this)">🙌🏻</span>
+      <span class="epick-btn" onclick="toggleEmojiPick(this)">👍</span>
+      <span class="epick-btn" onclick="toggleEmojiPick(this)">💪</span>
+      <span class="epick-btn" onclick="toggleEmojiPick(this)">😝</span>
+      <span class="epick-btn" onclick="toggleEmojiPick(this)">🙈</span>
+      <span class="epick-btn" onclick="toggleEmojiPick(this)">🌈</span>
+    </div>
+    <input type="text" id="emojiCustom" placeholder="위에 없는 이모지 직접 입력 (ex. 🐟🍽️💫)">
+    <div style="margin-top:8px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);cursor:pointer">
+        <input type="checkbox" id="emojiNone" onchange="toggleEmojiNoneCheck(this)" style="width:16px;height:16px;accent-color:var(--accent)">
+        이모지를 전혀 사용하지 않습니다
+      </label>
+    </div>
+  </div>
+
+  <hr class="div">
+
+  <div class="field">
+    <div class="flbl">추가 지시사항 <span class="opt">선택</span></div>
+    <div class="hint" style="margin-bottom:10px">
+      아래 예시처럼 자유롭게 입력해주세요.<br>
+      <span style="color:var(--accent)">금지 예시:</span> "ㅋㅋ 절대 금지", "반말 금지", "소중한 고객님 금지"<br>
+      <span style="color:var(--mint)">표현 예시:</span> "항상 !!를 두 번 씀", "ㅎㅎ를 자주 씀", "문장 끝에 ❤️를 자주 씀"
+    </div>
+    <textarea id="instrCustom" placeholder="ex) ㅋㅋ 절대 금지 / 반말 금지 / !!를 문장마다 씀 / ㅎㅎ를 가끔 씀" style="min-height:80px"></textarea>
+  </div>
+
+  <div class="nav">
+    <button class="btn btn-back" onclick="go('track')">← 이전</button>
+    <button class="btn btn-next" onclick="go('done')">완료 →</button>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════
+  DONE
+══════════════════════════════ -->
+<div class="sec" id="sDone">
+  <div class="done-icon">✅</div>
+  <div class="done-ttl">설정 완료!</div>
+  <div class="done-sub">아래 텍스트를 복사한 뒤 Claude에 붙여넣고,<br>캡처 이미지도 함께 첨부해서 보내주세요.<br>샘플 답글을 받아보고 수정사항을 알려주시면 됩니다.</div>
+  <div class="res-box" id="resBox"></div>
+  <button class="btn-copy" id="btnCopy" onclick="copyAll()">📋 전체 복사</button>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// ── State ──
+let currentTrack = null;
+let uploadedImgs = [];
+
+// ── 업종별 예시 리뷰 데이터 ──
+const REVIEWS_BY_CAT = {
+  '한식': [
+    { star:'★★★★★', text:'된장찌개가 진짜 집밥 느낌이에요!! 재료도 푸짐하고 국물이 너무 맛있어서 밥 두 공기 먹었습니다😊 자주 시킬 것 같아요.' },
+    { star:'★★★☆☆', text:'불고기는 맛있었는데 밑반찬 중에 김치가 좀 짰어요. 양은 충분했는데 간 조절이 조금 아쉬웠습니다.' },
+    { star:'★★★★★', text:'단골인데 올 때마다 맛이 일정해요!! 오늘도 역시 맛있었고 포장도 꼼꼼하게 해주셔서 감사합니다🙏' },
+  ],
+  '중식': [
+    { star:'★★★★★', text:'짜장면이 면이 쫄깃하고 춘장 소스가 진해서 너무 맛있었어요!! 탕수육도 바삭바삭하고 소스가 딱 좋았습니다😊' },
+    { star:'★★★★☆', text:'맛은 있었는데 짬뽕 국물이 생각보다 덜 매웠어요. 좀 더 칼칼했으면 좋겠는데 그래도 전반적으로 만족했습니다.' },
+    { star:'★★★★★', text:'여기 진짜 단골이에요!! 배달도 빠르고 양도 많고 맛도 일정해서 믿고 시키는 집입니다. 오늘도 맛있었어요🙏' },
+  ],
+  '일식': [
+    { star:'★★★★★', text:'초밥이 생각보다 너무 신선해서 깜짝 놀랐어요!! 재료 하나하나 퀄리티가 느껴지고 양도 푸짐해서 대만족입니다😊' },
+    { star:'★★★★☆', text:'라멘 국물은 진짜 맛있었는데 면이 배달 중에 퍼진 것 같았어요. 포장 방법 개선되면 더 좋을 것 같아요.' },
+    { star:'★★★★★', text:'단골인데 올 때마다 신선도가 일정해서 믿고 시킵니다!! 오늘도 역시 맛있었고 서비스도 감사했습니다🙏' },
+  ],
+  '양식': [
+    { star:'★★★★★', text:'파스타 소스가 진짜 진하고 면이 완벽하게 익어서 너무 맛있었어요!! 샐러드도 신선하고 양도 충분했습니다😊' },
+    { star:'★★★★☆', text:'스테이크는 맛있었는데 굽기가 요청한 것보다 좀 더 익은 것 같았어요. 다음엔 미디엄 레어 좀 더 신경 써주세요.' },
+    { star:'★★★★★', text:'여기 진짜 최고예요!! 매번 시킬 때마다 퀄리티가 일정하고 플레이팅도 예뻐서 기분 좋게 먹었습니다🙏' },
+  ],
+  '분식': [
+    { star:'★★★★★', text:'떡볶이 국물이 진짜 맵고 달콤해서 너무 맛있었어요!! 순대도 쫄깃하고 튀김도 바삭해서 조합이 완벽합니다😊' },
+    { star:'★★★★☆', text:'김밥은 맛있었는데 속 재료가 좀 적은 것 같았어요. 양 대비 가격이 조금 아쉬웠습니다. 맛 자체는 괜찮았어요.' },
+    { star:'★★★★★', text:'단골이에요!! 여기 떡볶이는 진짜 중독성 있어요. 오늘도 맛있게 먹었고 빠른 배달 감사합니다🙏' },
+  ],
+  '요리주점': [
+    { star:'★★★★★', text:'육회덮밥이 진짜 신선하고 고소해서 너무 맛있었어요!! 연어도 같이 시켰는데 둘 다 퀄리티가 최고였습니다😊' },
+    { star:'★★★★☆', text:'맛은 있었는데 소스가 조금 달았어요. 배달도 약간 늦긴 했지만 음식 상태는 괜찮았습니다. 다음엔 소스 조절 부탁드려요.' },
+    { star:'★★★★★', text:'단골이에요!! 매번 시킬 때마다 신선도가 일정해서 믿고 시킵니다. 오늘도 역시 맛있었습니다🙏' },
+  ],
+  '카페·디저트': [
+    { star:'★★★★★', text:'티라미수가 진짜 부드럽고 달달해서 너무 맛있었어요!! 커피도 쓴맛이 딱 적당하고 조합이 완벽했습니다😊' },
+    { star:'★★★★☆', text:'케이크는 맛있었는데 배달 중에 조금 눌린 것 같았어요. 맛에는 지장 없었지만 포장이 좀 아쉬웠습니다.' },
+    { star:'★★★★★', text:'여기 단골이에요!! 디저트 퀄리티가 카페 수준인데 배달로 먹을 수 있어서 너무 좋아요. 또 시킬게요🙏' },
+  ],
+  '치킨·피자': [
+    { star:'★★★★★', text:'치킨이 진짜 바삭하고 속까지 촉촉해서 너무 맛있었어요!! 양념 소스도 딱 맵기가 좋고 양도 넉넉했습니다😊' },
+    { star:'★★★★☆', text:'맛은 있었는데 닭다리가 좀 작은 것 같았어요. 튀김옷은 바삭했는데 부위 크기가 조금 아쉬웠습니다.' },
+    { star:'★★★★★', text:'단골인데 올 때마다 기름도 깨끗하고 바삭함이 일정해서 믿고 시킵니다!! 오늘도 최고였습니다🙏' },
+  ],
+  '기타': [
+    { star:'★★★★★', text:'음식이 진짜 맛있었어요!! 재료도 신선하고 양도 충분해서 너무 만족스러웠습니다. 자주 시킬 것 같아요😊' },
+    { star:'★★★★☆', text:'맛은 있었는데 양이 조금 적은 것 같았어요. 가격 대비 양이 좀 더 많았으면 좋겠습니다.' },
+    { star:'★★★★★', text:'단골이에요!! 매번 시킬 때마다 실망한 적이 없어요. 오늘도 맛있었고 포장도 꼼꼼해서 감사합니다🙏' },
+  ],
+};
+
+function getReviews() {
+  const sel = document.querySelector('#catGroup .chip.sel');
+  const cat = sel ? sel.dataset.v : '기타';
+  return REVIEWS_BY_CAT[cat] || REVIEWS_BY_CAT['기타'];
+}
+
+function injectReviews() {
+  const reviews = getReviews();
+  const stars = ['star1','star2','star3'];
+  const revs  = ['rev1','rev2','rev3'];
+  reviews.forEach((r, i) => {
+    const sEl = document.getElementById(stars[i]);
+    const rEl = document.getElementById(revs[i]);
+    if (sEl) sEl.textContent = r.star;
+    if (rEl) rEl.textContent = r.text;
+  });
+}
+
+// ── Random nicknames ──
+let currentNicks = ['하늘별달', '감자튀김러버', '바다향기'];
+
+// ── 이모지 피커 (트랙 C) ──
+function toggleEmojiPick(el) {
+  if (document.getElementById('emojiNone').checked) return;
+  el.classList.toggle('sel');
+}
+function toggleEmojiNoneCheck(cb) {
+  if (cb.checked) {
+    document.querySelectorAll('.epick-btn').forEach(b => b.classList.remove('sel'));
+    document.getElementById('emojiCustom').value = '';
+  }
+}
+function getPickedEmojis() {
+  if (document.getElementById('emojiNone')?.checked) return '없음';
+  const picked = [...document.querySelectorAll('.epick-btn.sel')].map(b => b.textContent);
+  const custom = (document.getElementById('emojiCustom')?.value || '').trim();
+  const all = [...picked, ...(custom ? [custom] : [])];
+  return all.length ? all.join(' ') : '미선택';
+}
+
+// ── Navigation ──
+const steps = {
+  'main': { id:'sMain', prog:0,   txt:'' },
+  '0':    { id:'s0',    prog:10,  txt:'기본 정보' },
+  'track':{ id:'sTrack',prog:30,  txt:'방식 선택' },
+  'A1':   { id:'sA1',  prog:60,  txt:'캡처 업로드' },
+  'B1':   { id:'sB1',  prog:60,  txt:'직접 작성' },
+  'C1':   { id:'sC1',  prog:60,  txt:'설문' },
+  'done': { id:'sDone',prog:100, txt:'완료' },
+};
+
+function go(key) {
+  if (key === 'A1') currentTrack = 'A';
+  if (key === 'B1') currentTrack = 'B';
+  if (key === 'C1') currentTrack = 'C';
+  if (key === 'done') buildResult();
+
+  document.querySelectorAll('.sec').forEach(s => s.classList.remove('on'));
+  const step = steps[key];
+  document.getElementById(step.id).classList.add('on');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // 메인 페이지일 때 헤더·프로그레스 숨김
+  const isMain = key === 'main';
+  document.querySelector('.hdr').style.display  = isMain ? 'none' : '';
+  document.querySelector('.prog').style.display = isMain ? 'none' : '';
+
+  document.getElementById('progFill').style.width = step.prog + '%';
+  document.getElementById('progTxt').textContent  = step.txt;
+  document.getElementById('progPct').textContent  = step.prog + '%';
+
+  // 트랙 B 진입 시 닉네임 고정 삽입 + 업종별 리뷰 주입
+  if (key === 'B1') {
+    const fixedNicks = ['하늘별달', '감자튀김러버', '바다향기'];
+    ['nick1','nick2','nick3'].forEach((id, i) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = fixedNicks[i];
+    });
+    currentNicks = fixedNicks;
+    injectReviews();
+    // 답글 초기화
+    document.querySelectorAll('.b-answer').forEach(t => t.value = '');
+  }
+}
+
+// ── Category chip ──
+document.querySelectorAll('#catGroup .chip').forEach(c => {
+  c.addEventListener('click', function() {
+    document.querySelectorAll('#catGroup .chip').forEach(x => x.classList.remove('sel'));
+    this.classList.add('sel');
+    document.getElementById('catEtcWrap').style.display =
+      this.dataset.v === '기타' ? 'block' : 'none';
+  });
+});
+
+// ── Single-select chip groups ──
+document.addEventListener('click', function(e) {
+  const chip = e.target.closest('.chip[data-g]');
+  if (!chip || chip.closest('#catGroup')) return;
+  const g = chip.dataset.g;
+  document.querySelectorAll('.chip[data-g="'+g+'"]').forEach(c => c.classList.remove('sel'));
+  chip.classList.add('sel');
+});
+
+// ── Radio ──
+function pickR(el) {
+  const g = el.dataset.g;
+  document.querySelectorAll('[data-g="'+g+'"]').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+// ── Image upload ──
+function handleUpload(e) {
+  const files = Array.from(e.target.files);
+  files.forEach(f => {
+    if (uploadedImgs.length >= 10) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      uploadedImgs.push({ name: f.name, src: ev.target.result });
+      renderGrid();
+    };
+    reader.readAsDataURL(f);
+  });
+  e.target.value = '';
+}
+
+function renderGrid() {
+  const grid = document.getElementById('imgGrid');
+  grid.innerHTML = uploadedImgs.map((img, i) =>
+    `<div class="img-card">
+      <img src="${img.src}" alt="캡처 ${i+1}">
+      <button class="del" onclick="removeImg(${i})">✕</button>
+    </div>`
+  ).join('');
+
+  const count = uploadedImgs.length;
+  document.getElementById('imgNum').textContent = count;
+  document.getElementById('imgCount').style.display = count > 0 ? 'flex' : 'none';
+
+  const btn = document.getElementById('btnA1Next');
+  const ok = count >= 3;
+  btn.style.opacity = ok ? '1' : '0.4';
+  btn.style.pointerEvents = ok ? 'auto' : 'none';
+}
+
+function removeImg(i) {
+  uploadedImgs.splice(i, 1);
+  renderGrid();
+}
+
+// drag and drop
+const uz = document.getElementById('uploadZone');
+uz.addEventListener('dragover', e => { e.preventDefault(); uz.classList.add('over'); });
+uz.addEventListener('dragleave', () => uz.classList.remove('over'));
+uz.addEventListener('drop', e => {
+  e.preventDefault(); uz.classList.remove('over');
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  files.forEach(f => {
+    if (uploadedImgs.length >= 10) return;
+    const reader = new FileReader();
+    reader.onload = ev => { uploadedImgs.push({ name: f.name, src: ev.target.result }); renderGrid(); };
+    reader.readAsDataURL(f);
+  });
+});
+
+// ── Build result ──
+function catVal() {
+  const el = document.querySelector('#catGroup .chip.sel');
+  if (!el) return '미입력';
+  if (el.dataset.v === '기타') return '기타 (' + (document.getElementById('catEtcVal').value.trim() || '미입력') + ')';
+  return el.dataset.v;
+}
+function rVal(g) {
+  const el = document.querySelector('[data-g="'+g+'"].sel');
+  return el ? el.dataset.v : '미입력';
+}
+function cVals(g) {
+  return [...document.querySelectorAll('[data-g="'+g+'"].sel')].map(e => e.dataset.v).join(', ') || '미입력';
+}
+function bAnswers() {
+  return [...document.querySelectorAll('.b-answer')].map((t,i) => {
+    const nick = currentNicks[i] || ('손님'+(i+1));
+    const val = t.value.trim();
+    return val ? `[${nick}] 답글${i+1}: ${val}` : null;
+  }).filter(Boolean).join('\n') || '없음';
+}
+function instrs() {
+  const pre = [...document.querySelectorAll('.itag.sel')].map(e => e.dataset.v);
+  const cus = (document.getElementById('instrCustom')?.value || '').trim();
+  return [...pre, ...(cus ? [cus] : [])].join(' / ') || '없음';
+}
+
+function buildResult() {
+  const storeName = document.getElementById('storeName').value || '미입력';
+  const menu      = document.getElementById('mainMenu').value || '미입력';
+  const loc       = document.getElementById('location').value || '미입력';
+  const cat       = catVal();
+  const replyLen  = rVal('replyLen') || '미설정';
+
+  // ── 트랙별 DNA 섹션 ──
+  let dnaSection = '';
+  let userRules  = '';  // 5단계: 사용자별 개인화 규칙
+
+  if (currentTrack === 'A') {
+    dnaSection =
+`[DNA 입력 방식] 실제 배민 답글 캡처 ${uploadedImgs.length}장
+[분석 지시] 첨부 이미지에서 사장님이 직접 작성한 답글만 추출하여 아래 항목을 분석하세요.
+  - 답글 구조 순서 (닉네임 호명 여부 / 감사 / 공감 / 다짐 / 재방문 순서)
+  - 종결어미 스타일 (~해요 / ~합니다 / ~했슴다 / 혼용 등)
+  - 이모지 종류·감정별 쓰임·문장 내 위치 (끝 / 중간 / 단락 사이)
+  - !! ㅎㅎ ㅜㅜ 등 부호·구어체 사용 빈도와 조건
+  - 답글 평균 길이와 문장 호흡 (단문 위주 / 만연체 등)
+  - 긍정·부정 리뷰 간 톤 차이`;
+
+    userRules = `[사용자 지시사항] 캡처 분석 결과에서 추출된 규칙을 최우선으로 따르세요.
+공통 알고리즘 규칙과 충돌 시 캡처에서 추출된 사장님 고유 패턴이 우선합니다.`;
+
+  } else if (currentTrack === 'B') {
+    const answers = bAnswers();
+    dnaSection =
+`[DNA 입력 방식] 사장님 직접 작성 예시 답글 3개
+${answers}
+
+[분석 지시] 위 3개 답글에서 아래 항목을 추출하세요.
+  - 답글 구조 순서 및 각 파트 표현 방식
+  - 종결어미·구어체·부호 습관
+  - 이모지 종류·위치·조합 패턴
+  - 긍정·부정 리뷰 간 톤 차이 (샘플 부족 시 유형 설정값 참고)`;
+
+    userRules = `[사용자 지시사항] 위 예시 답글 패턴을 최우선으로 따르세요.
+공통 알고리즘 규칙과 충돌 시 사장님 직접 작성 패턴이 우선합니다.`;
+
+  } else {
+    const vibe  = rVal('vibe');
+    const emoji = getPickedEmojis();
+    const instr = (document.getElementById('instrCustom')?.value || '').trim();
+
+    dnaSection =
+`[DNA 입력 방식] 설문 기반 설정
+  - 답글 유형: ${vibe}
+  - 사용 이모지: ${emoji}`;
+
+    // 사용자 지시사항이 있을 때만 개인화 규칙 섹션 생성
+    userRules = instr
+      ? `[사용자 지시사항] 아래는 이 사장님에게만 적용되는 개인 규칙입니다. 공통 알고리즘보다 우선합니다.
+${instr}`
+      : `[사용자 지시사항] 별도 지시사항 없음. 공통 알고리즘 규칙을 따르세요.`;
+  }
+
+  // ── 공통 프롬프트 조립 ──
+  const prompt =
+`# Role
+당신은 ${storeName} 사장님입니다. 배민 리뷰에 직접 답글을 다는 사람으로 완전히 빙의하세요.
+AI가 쓴 티가 나면 실패입니다.
+
+# Persona
+매장명: ${storeName}
+업종: ${cat} | 대표메뉴: ${menu} | 위치: ${loc}
+답글 길이: ${replyLen}
+
+# DNA
+${dnaSection}
+
+# 사용자 개인화 규칙 (최우선 적용)
+${userRules}
+
+# 공통 알고리즘 (사용자 규칙과 충돌 시 사용자 규칙 우선)
+A. 패러프레이징 — 단어 1:1 매핑 금지. 감정+상황 맥락 기준으로 한국인이 배민·카톡에서 실제 쓰는 표현인지 판단 후 생성.
+B. 이모지 — 문장 감정(행복/뿌듯/사과/음식)에 맞는 후보군에서 임의 조합. 연속 답글 동일 조합 절대 금지.
+C. 고정 문구 금지 — "큰 힘이 됩니다" "정성껏 준비하겠습니다" 등 매번 똑같은 문구 반복 금지. 매번 다른 맥락 표현으로 순환.
+D. 부정 리뷰 — 가벼운 톤 금지. 불만 포인트 집중 + 현실적 개선안 1문장 추가. 사과 파트에 !! 금지.
+E. !! 사용 — 손님 리뷰에 !!가 있을 때만 답글에 1회 사용.
+F. AI 금지 표현 — "소중한 고객님" "항상 최선을 다하는" "행복한 하루 되세요" 류의 뻔한 표현 절대 금지.
+
+# Task
+아래 리뷰를 읽고 사장님 말투로 답글을 작성하세요.
+답글만 출력하세요. 설명·부연·길이 안내 불필요.
+
+[리뷰]
+(여기에 손님 리뷰를 붙여넣으세요)`;
+
+  // ── 화면 렌더 ──
+  const displayData = {
+    '매장명': storeName,
+    '업종': cat,
+    '대표메뉴': menu,
+    '매장위치': loc,
+    '입력 방식': currentTrack === 'A' ? `캡처 업로드 (${uploadedImgs.length}장)` : currentTrack === 'B' ? '직접 작성' : '설문',
+  };
+
+  let html = Object.entries(displayData).map(([k,v]) =>
+    `<div class="res-row"><span class="res-k">${k}</span><span class="res-v">${v}</span></div>`
+  ).join('');
+
+  // 프롬프트 미리보기
+  html += `<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+    <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px">📄 생성된 프롬프트 미리보기</div>
+    <pre style="font-size:12px;color:var(--dim);line-height:1.7;white-space:pre-wrap;word-break:break-word;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;">${prompt.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+  </div>`;
+
+  // 트랙 A 캡처 미리보기
+  if (currentTrack === 'A' && uploadedImgs.length > 0) {
+    html += `<div style="margin-top:14px">
+      <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px">📸 업로드된 캡처</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+        ${uploadedImgs.map(img =>
+          `<div style="border-radius:8px;overflow:hidden;border:1px solid var(--border);aspect-ratio:9/16;background:var(--surface2)">
+            <img src="${img.src}" style="width:100%;height:100%;object-fit:cover">
+          </div>`
+        ).join('')}
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('resBox').innerHTML = html;
+
+  // 복사 버튼
+  const btnCopy = document.getElementById('btnCopy');
+  if (btnCopy) btnCopy.textContent = currentTrack === 'A' ? '📋 프롬프트 복사 (이미지는 직접 첨부)' : '📋 프롬프트 복사';
+
+  window._prompt = prompt;
+}
+
+function copyAll() {
+  const txt = window._prompt || '';
+  if (!txt) return;
+  const copy = (t) => {
+    navigator.clipboard.writeText(t).then(() => {
+      const b = document.getElementById('btnCopy');
+      b.textContent = '✅ 복사 완료!';
+      setTimeout(() => b.textContent = currentTrack === 'A' ? '📋 프롬프트 복사 (이미지는 직접 첨부)' : '📋 프롬프트 복사', 2000);
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = t; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      const b = document.getElementById('btnCopy');
+      b.textContent = '✅ 복사 완료!';
+      setTimeout(() => b.textContent = currentTrack === 'A' ? '📋 프롬프트 복사 (이미지는 직접 첨부)' : '📋 프롬프트 복사', 2000);
+    });
+  };
+  copy(txt);
+}
+
+// init — 메인 랜딩부터 시작
+go('main');
+</script>
+</body>
+</html>
