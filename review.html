@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReBorn! — 리뷰 답글 생성</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --surface2: #f0f2f5;
+  --border: #e2e6ea;
+  --accent: #3b9eff;
+  --mint: #2ec4b6;
+  --red: #ff3b30;
+  --text: #1a1d23;
+  --dim: #5a6070;
+  --muted: #aab0bb;
+  --r: 14px;
+  --rs: 8px;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans KR', sans-serif;
+  min-height: 100vh;
+}
+
+/* ── Nav ── */
+nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 32px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 1px 8px rgba(0,0,0,.05);
+  position: sticky; top: 0; z-index: 100;
+}
+.nav-logo {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 20px; font-weight: 900; text-decoration: none;
+}
+.logo-re { color: var(--mint); }
+.logo-born { color: var(--red); }
+.nav-right { display: flex; align-items: center; gap: 20px; }
+.store-badge {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 100px; padding: 6px 14px;
+  font-size: 13px; font-weight: 600; color: var(--dim);
+  display: flex; align-items: center; gap: 6px;
+}
+.store-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--mint); }
+
+/* ── Main layout ── */
+.wrap {
+  max-width: 780px; margin: 0 auto;
+  padding: 36px 24px 80px;
+}
+
+/* ── 매장 미등록 안내 ── */
+.no-store {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 48px 32px;
+  text-align: center; margin-top: 40px;
+}
+.no-store-icon { font-size: 48px; margin-bottom: 16px; }
+.no-store h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.no-store p { font-size: 14px; color: var(--dim); margin-bottom: 28px; line-height: 1.6; }
+.btn-survey {
+  background: var(--mint); color: #fff;
+  border: none; border-radius: 100px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 15px; font-weight: 700;
+  padding: 14px 32px; cursor: pointer;
+  text-decoration: none; display: inline-block;
+  transition: background .2s;
+}
+.btn-survey:hover { background: #25b0a3; }
+
+/* ── 섹션 헤더 ── */
+.section-title {
+  font-size: 22px; font-weight: 900;
+  margin-bottom: 6px;
+}
+.section-sub { font-size: 14px; color: var(--dim); margin-bottom: 24px; line-height: 1.5; }
+
+/* ── 업로드존 ── */
+.upload-zone {
+  border: 2px dashed var(--border); border-radius: var(--r);
+  background: var(--surface); padding: 40px 24px;
+  text-align: center; cursor: pointer;
+  transition: all .2s; position: relative;
+}
+.upload-zone:hover, .upload-zone.over {
+  border-color: var(--accent);
+  background: rgba(59,158,255,.04);
+}
+.upload-zone input { display: none; }
+.upload-icon { font-size: 36px; margin-bottom: 12px; }
+.upload-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+.upload-sub { font-size: 13px; color: var(--muted); }
+
+/* ── 이미지 미리보기 ── */
+.preview-wrap {
+  position: relative; margin-top: 16px;
+  border-radius: var(--r); overflow: hidden;
+  border: 1px solid var(--border); background: var(--surface2);
+  display: none;
+}
+.preview-img { width: 100%; max-height: 400px; object-fit: contain; display: block; }
+.preview-remove {
+  position: absolute; top: 10px; right: 10px;
+  background: rgba(0,0,0,.55); color: #fff;
+  border: none; border-radius: 100px;
+  font-size: 12px; font-weight: 700; padding: 5px 12px;
+  cursor: pointer; transition: background .2s;
+}
+.preview-remove:hover { background: rgba(0,0,0,.8); }
+
+/* ── 또는 구분선 ── */
+.divider-or {
+  display: flex; align-items: center; gap: 14px;
+  margin: 20px 0; color: var(--muted); font-size: 13px;
+}
+.divider-or::before, .divider-or::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* ── 텍스트 입력 ── */
+.field { margin-bottom: 20px; }
+.flbl {
+  font-size: 13px; font-weight: 600; color: var(--dim);
+  margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+}
+textarea, input[type=text] {
+  width: 100%; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--rs);
+  color: var(--text); font-family: 'Noto Sans KR', sans-serif;
+  font-size: 14px; padding: 12px 14px; outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  resize: vertical;
+}
+textarea:focus, input[type=text]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(59,158,255,.1);
+}
+textarea { min-height: 100px; line-height: 1.6; }
+
+/* ── 별점 선택 ── */
+.star-group { display: flex; gap: 8px; }
+.star-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--rs); padding: 8px 14px;
+  font-size: 13px; cursor: pointer; transition: all .2s;
+  font-family: 'Noto Sans KR', sans-serif;
+}
+.star-btn:hover { border-color: #aac8e8; }
+.star-btn.sel {
+  background: rgba(255,179,0,.12);
+  border-color: #ffb300; color: #996a00; font-weight: 700;
+}
+
+/* ── 생성 버튼 ── */
+.btn-generate {
+  width: 100%; padding: 16px;
+  background: linear-gradient(135deg, var(--accent), #2277dd);
+  color: #fff; border: none; border-radius: var(--r);
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 16px; font-weight: 700; cursor: pointer;
+  transition: all .2s; margin-top: 8px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-generate:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(59,158,255,.3); }
+.btn-generate:disabled {
+  background: var(--surface2); color: var(--muted);
+  cursor: not-allowed; transform: none; box-shadow: none;
+}
+
+/* ── 로딩 ── */
+.loading-wrap {
+  display: none; text-align: center; padding: 48px 24px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); margin-top: 24px;
+}
+.spinner {
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  animation: spin .8s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-txt { font-size: 14px; color: var(--dim); font-weight: 500; }
+.loading-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+/* ── 결과 ── */
+.result-wrap {
+  display: none; margin-top: 24px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); overflow: hidden;
+}
+.result-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.result-header-left { display: flex; align-items: center; gap: 8px; }
+.result-badge {
+  background: rgba(46,196,182,.12); color: var(--mint);
+  font-size: 11px; font-weight: 700; padding: 3px 10px;
+  border-radius: 100px; letter-spacing: .3px;
+}
+.result-charcount { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
+.result-body { padding: 20px; }
+.result-text {
+  font-size: 15px; line-height: 1.8; color: var(--text);
+  white-space: pre-wrap; word-break: break-all;
+  min-height: 60px;
+}
+.result-actions {
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 10px;
+}
+.btn-copy {
+  flex: 1; padding: 12px;
+  background: var(--mint); color: #fff;
+  border: none; border-radius: var(--rs);
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  transition: all .2s;
+}
+.btn-copy:hover { background: #25b0a3; }
+.btn-retry {
+  padding: 12px 20px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--rs);
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 14px; font-weight: 600; color: var(--dim);
+  cursor: pointer; transition: all .2s;
+}
+.btn-retry:hover { border-color: #aac8e8; color: var(--text); }
+
+/* ── 에러 ── */
+.error-wrap {
+  display: none; margin-top: 24px;
+  background: #fff5f5; border: 1px solid #ffd0d0;
+  border-radius: var(--r); padding: 20px;
+  font-size: 14px; color: #c0392b; line-height: 1.6;
+}
+
+/* ── 히스토리 ── */
+.history-wrap { margin-top: 48px; }
+.history-title {
+  font-size: 16px; font-weight: 700;
+  margin-bottom: 14px; color: var(--dim);
+  display: flex; align-items: center; gap: 8px;
+}
+.history-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--rs); padding: 14px 16px;
+  margin-bottom: 10px; cursor: pointer;
+  transition: border-color .2s;
+}
+.history-item:hover { border-color: var(--accent); }
+.history-review { font-size: 12px; color: var(--muted); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.history-reply { font-size: 13px; color: var(--dim); line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.history-meta { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+/* ── 카드 구분 ── */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 24px; margin-bottom: 16px;
+}
+.card-title {
+  font-size: 15px; font-weight: 700; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* ── 힌트 ── */
+.hint { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+.hint a { color: var(--accent); text-decoration: none; }
+
+/* ── notice ── */
+.notice {
+  background: rgba(59,158,255,.07); border: 1px solid rgba(59,158,255,.2);
+  border-radius: var(--rs); padding: 12px 15px;
+  font-size: 13px; color: #2266bb; line-height: 1.6; margin-bottom: 20px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo">
+    <span class="logo-re">Re</span><span class="logo-born">Born!</span>
+  </a>
+  <div class="nav-right">
+    <div class="store-badge" id="storeBadge" style="display:none">
+      <div class="store-dot"></div>
+      <span id="storeNameBadge">매장명</span>
+    </div>
+    <a href="survey.html" style="font-size:13px;color:var(--dim);text-decoration:none;">DNA 재등록</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- 매장 미등록 -->
+  <div class="no-store" id="noStore" style="display:none">
+    <div class="no-store-icon">🧬</div>
+    <h2>등록된 DNA가 없습니다</h2>
+    <p>먼저 사장님 말투 DNA를 등록해주세요.<br>3분이면 완료됩니다.</p>
+    <a href="survey.html" class="btn-survey">DNA 등록하러 가기 →</a>
+  </div>
+
+  <!-- 메인 -->
+  <div id="mainContent" style="display:none">
+
+    <div class="notice" id="dnaNotice"></div>
+
+    <!-- 리뷰 입력 카드 -->
+    <div class="card">
+      <div class="card-title">📋 리뷰 입력</div>
+
+      <!-- 이미지 업로드 -->
+      <div class="field">
+        <div class="flbl">캡처 이미지 업로드 <span style="color:var(--muted);font-weight:400;font-size:11px">선택</span></div>
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imgInput').click()">
+          <input type="file" id="imgInput" accept="image/*" onchange="handleImg(event)">
+          <div class="upload-icon">📸</div>
+          <div class="upload-title">배민 리뷰 화면 캡처 업로드</div>
+          <div class="upload-sub">이미지에서 닉네임·별점·내용을 자동으로 읽어옵니다</div>
+        </div>
+        <div class="preview-wrap" id="previewWrap">
+          <img id="previewImg" class="preview-img">
+          <button class="preview-remove" onclick="removeImg()">✕ 제거</button>
+        </div>
+      </div>
+
+      <div class="divider-or">또는 직접 입력</div>
+
+      <!-- 닉네임 -->
+      <div class="field">
+        <div class="flbl">손님 닉네임</div>
+        <input type="text" id="nickname" placeholder="ex) 바다향기">
+      </div>
+
+      <!-- 별점 -->
+      <div class="field">
+        <div class="flbl">별점</div>
+        <div class="star-group" id="starGroup">
+          <button class="star-btn" data-v="1" onclick="pickStar(this)">⭐ 1점</button>
+          <button class="star-btn" data-v="2" onclick="pickStar(this)">⭐⭐ 2점</button>
+          <button class="star-btn" data-v="3" onclick="pickStar(this)">⭐⭐⭐ 3점</button>
+          <button class="star-btn" data-v="4" onclick="pickStar(this)">⭐⭐⭐⭐ 4점</button>
+          <button class="star-btn sel" data-v="5" onclick="pickStar(this)">⭐⭐⭐⭐⭐ 5점</button>
+        </div>
+      </div>
+
+      <!-- 리뷰 내용 -->
+      <div class="field">
+        <div class="flbl">리뷰 내용</div>
+        <textarea id="reviewText" placeholder="손님이 남긴 리뷰 내용을 입력하세요&#10;ex) 연어가 너무 신선해요!! 단골 될게요 😊"></textarea>
+        <div class="hint">캡처를 올리면 자동으로 채워집니다</div>
+      </div>
+
+      <button class="btn-generate" id="btnGenerate" onclick="generate()">
+        ✨ 답글 생성하기
+      </button>
+    </div>
+
+    <!-- 로딩 -->
+    <div class="loading-wrap" id="loadingWrap">
+      <div class="spinner"></div>
+      <div class="loading-txt" id="loadingTxt">답글을 생성하고 있습니다...</div>
+      <div class="loading-sub" id="loadingSub">사장님 말투 DNA를 분석 중입니다</div>
+    </div>
+
+    <!-- 에러 -->
+    <div class="error-wrap" id="errorWrap"></div>
+
+    <!-- 결과 -->
+    <div class="result-wrap" id="resultWrap">
+      <div class="result-header">
+        <div class="result-header-left">
+          <span class="result-badge">✅ 생성 완료</span>
+          <span class="result-charcount" id="charCount"></span>
+        </div>
+      </div>
+      <div class="result-body">
+        <div class="result-text" id="resultText"></div>
+      </div>
+      <div class="result-actions">
+        <button class="btn-copy" onclick="copyReply()">📋 답글 복사</button>
+        <button class="btn-retry" onclick="generate()">🔄 다시 생성</button>
+      </div>
+    </div>
+
+    <!-- 히스토리 -->
+    <div class="history-wrap" id="historyWrap" style="display:none">
+      <div class="history-title">🕘 최근 생성 기록</div>
+      <div id="historyList"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── 설정 ──
+const SUPABASE_URL = 'https://cuazfkjqmismgvrgavbq.supabase.co';
+const SUPABASE_KEY = 'YOUR_NEW_ANON_KEY'; // 재발급 키로 교체
+const CLAUDE_KEY   = 'YOUR_CLAUDE_API_KEY'; // Claude API 키
+
+// ── 상태 ──
+let dnaPrompt   = null;
+let storeName   = null;
+let imageBase64 = null;
+let imageType   = null;
+let selectedStar = 5;
+let history     = JSON.parse(localStorage.getItem('rb_history') || '[]');
+
+// ── 초기화 ──
+async function init() {
+  // URL 파라미터에서 kakao_id 또는 store_id 확인
+  const params = new URLSearchParams(location.search);
+  const storeId = params.get('store') || localStorage.getItem('rb_store_id');
+
+  if (storeId) {
+    await loadDNA(storeId);
+  } else {
+    // Supabase에서 가장 최근 등록된 DNA 불러오기 (테스트용)
+    await loadLatestDNA();
+  }
+}
+
+async function loadDNA(storeId) {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/owners?id=eq.${storeId}&select=store_name,dna_prompt`,
+      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+    );
+    const data = await res.json();
+    if (data?.[0]) setDNA(data[0]);
+    else showNoStore();
+  } catch { showNoStore(); }
+}
+
+async function loadLatestDNA() {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/owners?select=store_name,dna_prompt&order=created_at.desc&limit=1`,
+      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+    );
+    const data = await res.json();
+    if (data?.[0]) setDNA(data[0]);
+    else showNoStore();
+  } catch { showNoStore(); }
+}
+
+function setDNA(owner) {
+  dnaPrompt = owner.dna_prompt;
+  storeName = owner.store_name;
+  document.getElementById('storeNameBadge').textContent = storeName;
+  document.getElementById('storeBadge').style.display = 'flex';
+  document.getElementById('dnaNotice').textContent =
+    `🧬 ${storeName} DNA가 로드되었습니다. 리뷰를 입력하면 사장님 말투로 답글을 생성합니다.`;
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('noStore').style.display = 'none';
+  renderHistory();
+}
+
+function showNoStore() {
+  document.getElementById('noStore').style.display = 'block';
+  document.getElementById('mainContent').style.display = 'none';
+}
+
+// ── 별점 ──
+function pickStar(el) {
+  document.querySelectorAll('.star-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  selectedStar = parseInt(el.dataset.v);
+}
+
+// ── 이미지 업로드 ──
+function handleImg(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    imageBase64 = ev.target.result.split(',')[1];
+    imageType   = file.type;
+    document.getElementById('previewImg').src  = ev.target.result;
+    document.getElementById('previewWrap').style.display = 'block';
+    document.getElementById('uploadZone').style.display  = 'none';
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+
+function removeImg() {
+  imageBase64 = null; imageType = null;
+  document.getElementById('previewWrap').style.display = 'none';
+  document.getElementById('uploadZone').style.display  = 'block';
+}
+
+// 드래그앤드롭
+const uz = document.getElementById('uploadZone');
+uz.addEventListener('dragover', e => { e.preventDefault(); uz.classList.add('over'); });
+uz.addEventListener('dragleave', () => uz.classList.remove('over'));
+uz.addEventListener('drop', e => {
+  e.preventDefault(); uz.classList.remove('over');
+  const file = e.dataTransfer.files[0];
+  if (file?.type.startsWith('image/')) {
+    const dt = new DataTransfer(); dt.items.add(file);
+    document.getElementById('imgInput').files = dt.files;
+    handleImg({ target: document.getElementById('imgInput') });
+  }
+});
+
+// ── 답글 생성 ──
+async function generate() {
+  if (!dnaPrompt) return;
+
+  const nickname   = document.getElementById('nickname').value.trim();
+  const reviewText = document.getElementById('reviewText').value.trim();
+  const stars      = '⭐'.repeat(selectedStar);
+
+  // 이미지도 없고 텍스트도 없으면
+  if (!imageBase64 && !reviewText) {
+    showError('리뷰 내용을 입력하거나 이미지를 업로드해주세요.');
+    return;
+  }
+
+  setLoading(true);
+  hideResult();
+  hideError();
+
+  try {
+    let prompt;
+    let messages;
+
+    if (imageBase64) {
+      // 이미지 모드 — Vision으로 OCR + 답글 생성 동시 처리
+      setLoadingText('이미지에서 리뷰를 읽는 중...', '닉네임·별점·내용을 자동 분석합니다');
+      prompt = dnaPrompt.replace(
+        '(여기에 손님 리뷰를 붙여넣으세요)',
+        '[이미지에서 리뷰 정보를 추출하여 답글을 작성해주세요]'
+      );
+      messages = [{
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: { type: 'base64', media_type: imageType, data: imageBase64 }
+          },
+          {
+            type: 'text',
+            text: `위 이미지는 배민 리뷰 화면 캡처입니다.
+이미지에서 다음을 추출하세요:
+- 손님 닉네임
+- 별점
+- 리뷰 내용 (이모지 포함하여 그대로)
+
+그리고 아래 사장님 DNA 프롬프트에 따라 즉시 답글을 작성하세요.
+답글만 출력하세요. 추출된 정보나 설명은 출력하지 마세요.
+
+${prompt}`
+          }
+        ]
+      }];
+    } else {
+      // 텍스트 모드
+      setLoadingText('답글을 생성하고 있습니다...', '사장님 말투 DNA를 적용 중입니다');
+      const reviewInfo = `${nickname ? nickname + '님 ' : ''}${stars}\n${reviewText}`;
+      prompt = dnaPrompt.replace('(여기에 손님 리뷰를 붙여넣으세요)', reviewInfo);
+      messages = [{ role: 'user', content: prompt }];
+    }
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': CLAUDE_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 500,
+        messages
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const reply = data.content?.[0]?.text?.trim() || '';
+    if (!reply) throw new Error('답글 생성 실패');
+
+    showResult(reply);
+    saveHistory(nickname || '손님', reviewText || '이미지 업로드', reply);
+
+  } catch (err) {
+    showError('답글 생성 중 오류가 발생했습니다: ' + err.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ── UI 헬퍼 ──
+function setLoading(on) {
+  document.getElementById('loadingWrap').style.display = on ? 'block' : 'none';
+  document.getElementById('btnGenerate').disabled = on;
+}
+function setLoadingText(txt, sub) {
+  document.getElementById('loadingTxt').textContent = txt;
+  document.getElementById('loadingSub').textContent = sub;
+}
+function showResult(text) {
+  const wrap = document.getElementById('resultWrap');
+  document.getElementById('resultText').textContent = text;
+  document.getElementById('charCount').textContent = text.length + '자';
+  wrap.style.display = 'block';
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function hideResult() { document.getElementById('resultWrap').style.display = 'none'; }
+function showError(msg) {
+  const el = document.getElementById('errorWrap');
+  el.textContent = '⚠️ ' + msg;
+  el.style.display = 'block';
+}
+function hideError() { document.getElementById('errorWrap').style.display = 'none'; }
+
+function copyReply() {
+  const text = document.getElementById('resultText').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.btn-copy');
+    btn.textContent = '✅ 복사 완료!';
+    setTimeout(() => btn.textContent = '📋 답글 복사', 2000);
+  });
+}
+
+// ── 히스토리 ──
+function saveHistory(nick, review, reply) {
+  history.unshift({
+    nick, review: review.slice(0, 40),
+    reply: reply.slice(0, 60),
+    time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+  });
+  if (history.length > 10) history = history.slice(0, 10);
+  localStorage.setItem('rb_history', JSON.stringify(history));
+  renderHistory();
+}
+
+function renderHistory() {
+  if (!history.length) return;
+  document.getElementById('historyWrap').style.display = 'block';
+  document.getElementById('historyList').innerHTML = history.map(h => `
+    <div class="history-item" onclick="loadHistory('${encodeURIComponent(h.reply)}')">
+      <div class="history-review">📝 ${h.nick} — ${h.review}${h.review.length >= 40 ? '...' : ''}</div>
+      <div class="history-reply">${h.reply}${h.reply.length >= 60 ? '...' : ''}</div>
+      <div class="history-meta">${h.time}</div>
+    </div>
+  `).join('');
+}
+
+function loadHistory(encodedReply) {
+  const reply = decodeURIComponent(encodedReply);
+  showResult(reply);
+}
+
+// 시작
+init();
+</script>
+</body>
+</html>
