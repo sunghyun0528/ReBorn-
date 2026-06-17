@@ -644,9 +644,10 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
 <div class="sec" id="sDone">
   <div class="done-icon">✅</div>
   <div class="done-ttl">설정 완료!</div>
-  <div class="done-sub">아래 텍스트를 복사한 뒤 Claude에 붙여넣고,<br>캡처 이미지도 함께 첨부해서 보내주세요.<br>샘플 답글을 받아보고 수정사항을 알려주시면 됩니다.</div>
+  <div class="done-sub">DNA 프롬프트가 생성되어 DB에 저장됩니다.<br>아래 프롬프트를 복사해서 Claude에 붙여넣어 테스트해보세요.</div>
   <div class="res-box" id="resBox"></div>
-  <button class="btn-copy" id="btnCopy" onclick="copyAll()">📋 전체 복사</button>
+  <div id="saveStatus" style="text-align:center;font-size:13px;margin-top:12px;font-family:'DM Mono',monospace;min-height:20px"></div>
+  <button class="btn-copy" id="btnCopy" onclick="copyAll()">📋 프롬프트 복사</button>
 </div>
 
 </div><!-- /main -->
@@ -1026,6 +1027,19 @@ F. AI 금지 표현 — "소중한 고객님" "항상 최선을 다하는" "행�
   if (btnCopy) btnCopy.textContent = currentTrack === 'A' ? '📋 프롬프트 복사 (이미지는 직접 첨부)' : '📋 프롬프트 복사';
 
   window._prompt = prompt;
+
+  // ── Supabase 자동 저장 ──
+  const saveStatus = document.getElementById('saveStatus');
+  if (saveStatus) {
+    saveStatus.textContent = '💾 저장 중...';
+    saveStatus.style.color = 'var(--muted)';
+  }
+  saveToSupabase(prompt).then(ok => {
+    if (saveStatus) {
+      saveStatus.textContent = ok ? '✅ DB 저장 완료' : '⚠️ 저장 실패 (콘솔 확인)';
+      saveStatus.style.color = ok ? 'var(--mint)' : '#e05555';
+    }
+  });
 }
 
 function copyAll() {
@@ -1047,6 +1061,43 @@ function copyAll() {
     });
   };
   copy(txt);
+}
+
+// ── Supabase 연동 ──
+const SUPABASE_URL  = 'https://cuazfkjqmismgvrgavbq.supabase.co';
+const SUPABASE_KEY  = 'sb_publishable_5Kv7I5w0cFKqSsiLOdA0hw_q2eOrL72'; 
+
+async function saveToSupabase(prompt) {
+  try {
+    const payload = {
+      store_name:   document.getElementById('storeName').value || '미입력',
+      category:     catVal(),
+      menu:         document.getElementById('mainMenu').value  || '미입력',
+      location:     document.getElementById('location').value  || '미입력',
+      reply_length: rVal('replyLen') || '미설정',
+      track:        currentTrack,
+      dna_prompt:   prompt,
+    };
+
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/owners`, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'apikey':        SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Prefer':        'return=representation',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    console.log('✅ Supabase 저장 완료:', data);
+    return true;
+  } catch (err) {
+    console.error('❌ Supabase 저장 실패:', err);
+    return false;
+  }
 }
 
 // init — 메인 랜딩부터 시작
