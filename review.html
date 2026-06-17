@@ -297,6 +297,7 @@ textarea { min-height: 100px; line-height: 1.6; }
     <span class="logo-re">Re</span><span class="logo-born">Born!</span>
   </a>
   <div class="nav-right">
+    <a href="index.html" style="font-size:13px;color:var(--dim);text-decoration:none;display:flex;align-items:center;gap:4px;">← 홈으로</a>
     <div class="store-badge" id="storeBadge" style="display:none">
       <div class="store-dot"></div>
       <span id="storeNameBadge">매장명</span>
@@ -408,53 +409,39 @@ textarea { min-height: 100px; line-height: 1.6; }
 </div>
 
 <script>
-// ── 설정 ──
-const SUPABASE_URL = 'https://cuazfkjqmismgvrgavbq.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_5Kv7I5w0cFKqSsiLOdA0hw_q2eOrL72';
-const CLAUDE_KEY   = 'YOUR_CLAUDE_API_KEY'; // Claude API 키
-
 // ── 상태 ──
-let dnaPrompt   = null;
-let storeName   = null;
-let imageBase64 = null;
-let imageType   = null;
+let dnaPrompt    = null;
+let storeName    = null;
+let imageFile    = null;
 let selectedStar = 5;
-let history     = JSON.parse(localStorage.getItem('rb_history') || '[]');
+let history      = JSON.parse(localStorage.getItem('rb_history') || '[]');
 
 // ── 초기화 ──
 async function init() {
-  // URL 파라미터에서 kakao_id 또는 store_id 확인
-  const params = new URLSearchParams(location.search);
+  const params  = new URLSearchParams(location.search);
   const storeId = params.get('store') || localStorage.getItem('rb_store_id');
 
   if (storeId) {
     await loadDNA(storeId);
   } else {
-    // Supabase에서 가장 최근 등록된 DNA 불러오기 (테스트용)
     await loadLatestDNA();
   }
 }
 
 async function loadDNA(storeId) {
   try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/owners?id=eq.${storeId}&select=store_name,dna_prompt`,
-      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
-    );
+    const res  = await fetch(`/api/get-dna?id=${storeId}`);
     const data = await res.json();
-    if (data?.[0]) setDNA(data[0]);
+    if (data.ok) setDNA(data.owner);
     else showNoStore();
   } catch { showNoStore(); }
 }
 
 async function loadLatestDNA() {
   try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/owners?select=store_name,dna_prompt&order=created_at.desc&limit=1`,
-      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
-    );
+    const res  = await fetch('/api/get-dna');
     const data = await res.json();
-    if (data?.[0]) setDNA(data[0]);
+    if (data.ok) setDNA(data.owner);
     else showNoStore();
   } catch { showNoStore(); }
 }
@@ -487,10 +474,9 @@ function pickStar(el) {
 function handleImg(e) {
   const file = e.target.files[0];
   if (!file) return;
+  imageFile = file;
   const reader = new FileReader();
   reader.onload = ev => {
-    imageBase64 = ev.target.result.split(',')[1];
-    imageType   = file.type;
     document.getElementById('previewImg').src  = ev.target.result;
     document.getElementById('previewWrap').style.display = 'block';
     document.getElementById('uploadZone').style.display  = 'none';
@@ -500,7 +486,7 @@ function handleImg(e) {
 }
 
 function removeImg() {
-  imageBase64 = null; imageType = null;
+  imageFile = null;
   document.getElementById('previewWrap').style.display = 'none';
   document.getElementById('uploadZone').style.display  = 'block';
 }
@@ -519,16 +505,29 @@ uz.addEventListener('drop', e => {
   }
 });
 
+// ── 이미지 → 서버 업로드 → URL 반환 ──
+async function uploadReviewImage(file) {
+  const res = await fetch('/api/upload-image', {
+    method: 'POST',
+    headers: {
+      'x-file-name': `review-temp/${Date.now()}.${file.type.split('/')[1] || 'jpg'}`,
+      'x-file-type': file.type,
+    },
+    body: file,
+  });
+  if (!res.ok) throw new Error('이미지 업로드 실패');
+  const data = await res.json();
+  return data.url;
+}
+
 // ── 답글 생성 ──
 async function generate() {
   if (!dnaPrompt) return;
 
   const nickname   = document.getElementById('nickname').value.trim();
   const reviewText = document.getElementById('reviewText').value.trim();
-  const stars      = '⭐'.repeat(selectedStar);
 
-  // 이미지도 없고 텍스트도 없으면
-  if (!imageBase64 && !reviewText) {
+  if (!imageFile && !reviewText) {
     showError('리뷰 내용을 입력하거나 이미지를 업로드해주세요.');
     return;
   }
@@ -538,67 +537,28 @@ async function generate() {
   hideError();
 
   try {
-    let prompt;
-    let messages;
+    let body;
 
-    if (imageBase64) {
-      // 이미지 모드 — Vision으로 OCR + 답글 생성 동시 처리
+    if (imageFile) {
+      setLoadingText('이미지 업로드 중...', '잠시만 기다려주세요');
+      const imageUrl = await uploadReviewImage(imageFile);
       setLoadingText('이미지에서 리뷰를 읽는 중...', '닉네임·별점·내용을 자동 분석합니다');
-      prompt = dnaPrompt.replace(
-        '(여기에 손님 리뷰를 붙여넣으세요)',
-        '[이미지에서 리뷰 정보를 추출하여 답글을 작성해주세요]'
-      );
-      messages = [{
-        role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: { type: 'base64', media_type: imageType, data: imageBase64 }
-          },
-          {
-            type: 'text',
-            text: `위 이미지는 배민 리뷰 화면 캡처입니다.
-이미지에서 다음을 추출하세요:
-- 손님 닉네임
-- 별점
-- 리뷰 내용 (이모지 포함하여 그대로)
-
-그리고 아래 사장님 DNA 프롬프트에 따라 즉시 답글을 작성하세요.
-답글만 출력하세요. 추출된 정보나 설명은 출력하지 마세요.
-
-${prompt}`
-          }
-        ]
-      }];
+      body = { dna_prompt: dnaPrompt, image_url: imageUrl };
     } else {
-      // 텍스트 모드
       setLoadingText('답글을 생성하고 있습니다...', '사장님 말투 DNA를 적용 중입니다');
-      const reviewInfo = `${nickname ? nickname + '님 ' : ''}${stars}\n${reviewText}`;
-      prompt = dnaPrompt.replace('(여기에 손님 리뷰를 붙여넣으세요)', reviewInfo);
-      messages = [{ role: 'user', content: prompt }];
+      body = { dna_prompt: dnaPrompt, review_text: reviewText, nickname, stars: selectedStar };
     }
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': CLAUDE_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 500,
-        messages
-      })
+    const res  = await fetch('/api/generate', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(body),
     });
-
     const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
-    const reply = data.content?.[0]?.text?.trim() || '';
-    if (!reply) throw new Error('답글 생성 실패');
+    if (!data.ok) throw new Error(data.error);
 
-    showResult(reply);
-    saveHistory(nickname || '손님', reviewText || '이미지 업로드', reply);
+    showResult(data.reply);
+    saveHistory(nickname || '손님', reviewText || '이미지 업로드', data.reply);
 
   } catch (err) {
     showError('답글 생성 중 오류가 발생했습니다: ' + err.message);
