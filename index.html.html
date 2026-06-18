@@ -130,8 +130,9 @@ nav {
 .review-card {
   background: var(--white);
   border: 1px solid var(--gray2);
-  border-radius: var(--r); padding: 20px;
+  border-radius: var(--r); padding: 16px;
   text-align: left; position: relative;
+  min-width: 0;
 }
 .review-card.bad { border-color: #ffd0d0; background: #fff8f8; }
 .review-card.good { border-color: #c8f0ec; background: #f4fffe; }
@@ -141,7 +142,7 @@ nav {
 }
 .bad .card-label { color: var(--red); }
 .good .card-label { color: var(--mint); }
-.card-text { font-size: 13px; line-height: 1.7; color: var(--dim); }
+.card-text { font-size: 12.5px; line-height: 1.75; color: var(--dim); word-break: keep-all; overflow-wrap: break-word; }
 .card-arrow {
   position: absolute; top: 50%; right: -28px; transform: translateY(-50%);
   font-size: 20px; color: var(--muted);
