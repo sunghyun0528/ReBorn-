@@ -417,28 +417,19 @@ let history      = JSON.parse(localStorage.getItem('rb_history') || '[]');
 
 // ── 초기화 ──
 async function init() {
-  const params  = new URLSearchParams(location.search);
-  const storeId = params.get('store') || localStorage.getItem('rb_store_id');
+  const params    = new URLSearchParams(location.search);
+  const storeCode = params.get('store');
 
-  if (storeId) {
-    await loadDNA(storeId);
+  if (storeCode) {
+    await loadDNA(storeCode);
   } else {
-    await loadLatestDNA();
+    showNoStore();
   }
 }
 
-async function loadDNA(storeId) {
+async function loadDNA(storeCode) {
   try {
-    const res  = await fetch(`/api/get-dna?id=${storeId}`);
-    const data = await res.json();
-    if (data.ok) setDNA(data.owner);
-    else showNoStore();
-  } catch { showNoStore(); }
-}
-
-async function loadLatestDNA() {
-  try {
-    const res  = await fetch('/api/get-dna');
+    const res  = await fetch(`/api/get-dna?store=${storeCode}`);
     const data = await res.json();
     if (data.ok) setDNA(data.owner);
     else showNoStore();
