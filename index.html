@@ -5,9 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ReBorn! — 사장님 말투 그대로, AI 리뷰 답글</title>
 <meta name="description" content="AI가 사장님의 말투를 학습해서 배민 리뷰 답글을 대신 써드립니다.">
+<meta name="theme-color" content="#2ec4b6">
+<link rel="canonical" href="https://re-born-eta.vercel.app/">
+<!-- Favicon: 외부 파일 없이 SVG inline로 R 로고 -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230e0e0e'/%3E%3Ctext x='50%25' y='54%25' text-anchor='middle' dominant-baseline='middle' font-family='Montserrat,Arial,sans-serif' font-size='38' font-weight='900' fill='%232ec4b6'%3ER%3C/text%3E%3Ctext x='50%25' y='54%25' text-anchor='middle' dominant-baseline='middle' font-family='Montserrat,Arial,sans-serif' font-size='38' font-weight='900' fill='%23ff3b30' transform='translate(15)'%3E!%3C/text%3E%3C/svg%3E">
+<!-- Open Graph -->
 <meta property="og:title" content="ReBorn! — AI 리뷰 답글 서비스">
 <meta property="og:description" content="로봇 같은 답글은 이제 그만. 사장님 말투 그대로 AI가 씁니다.">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://re-born-eta.vercel.app/">
+<meta property="og:image" content="https://re-born-eta.vercel.app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:site_name" content="ReBorn!">
+<!-- Twitter / X -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="ReBorn! — AI 리뷰 답글 서비스">
+<meta name="twitter:description" content="로봇 같은 답글은 이제 그만. 사장님 말투 그대로 AI가 씁니다.">
+<meta name="twitter:image" content="https://re-born-eta.vercel.app/og-image.png">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -20,8 +36,10 @@
   --gray2: #e8e8e8;
   --text: #1a1a1a;
   --dim: #666;
-  --muted: #999;
+  --muted: #767676;
+  --r-sm: 12px;
   --r: 16px;
+  --r-pill: 100px;
 }
 html { scroll-behavior: smooth; }
 body {
@@ -55,7 +73,7 @@ nav {
 .nav-links a:hover { color: var(--text); }
 .nav-cta {
   background: var(--black); color: var(--white) !important;
-  padding: 10px 22px; border-radius: 100px; font-weight: 700 !important;
+  padding: 10px 22px; border-radius: var(--r-pill); font-weight: 700 !important;
   transition: background .2s !important;
 }
 .nav-cta:hover { background: #333 !important; color: var(--white) !important; }
@@ -80,7 +98,7 @@ nav {
 .hero-eyebrow {
   display: inline-flex; align-items: center; gap: 8px;
   background: var(--gray); border: 1px solid var(--gray2);
-  border-radius: 100px; padding: 6px 16px;
+  border-radius: var(--r-pill); padding: 6px 16px;
   font-size: 12px; font-weight: 700; color: var(--dim);
   letter-spacing: .5px; text-transform: uppercase;
   margin-bottom: 32px;
@@ -104,23 +122,54 @@ nav {
 .hero-btns { display: flex; align-items: center; gap: 14px; justify-content: center; flex-wrap: wrap; }
 .btn-primary {
   background: var(--black); color: var(--white);
-  border: none; border-radius: 100px;
+  border: none; border-radius: var(--r-pill);
   font-family: 'Noto Sans KR', sans-serif;
   font-size: 16px; font-weight: 700;
-  padding: 16px 36px; cursor: pointer;
+  padding: 14px 32px; min-height: 52px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  cursor: pointer;
   transition: transform .2s, box-shadow .2s;
-  text-decoration: none; display: inline-block;
+  text-decoration: none;
 }
 .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.15); }
 .btn-secondary {
   background: transparent; color: var(--dim);
-  border: 1.5px solid var(--gray2); border-radius: 100px;
+  border: 1.5px solid var(--gray2); border-radius: var(--r-pill);
   font-family: 'Noto Sans KR', sans-serif;
   font-size: 15px; font-weight: 500;
-  padding: 15px 28px; cursor: pointer;
-  transition: all .2s; text-decoration: none; display: inline-block;
+  padding: 14px 28px; min-height: 52px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  cursor: pointer;
+  transition: all .2s;
+  text-decoration: none;
 }
 .btn-secondary:hover { border-color: var(--text); color: var(--text); }
+
+/* Dark-background variants (#12) */
+.btn-mint {
+  background: var(--mint); color: var(--white);
+  border: none; border-radius: var(--r-pill);
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 15px; font-weight: 700;
+  padding: 14px 32px; min-height: 50px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  cursor: pointer;
+  transition: background .2s, transform .2s, box-shadow .2s;
+  text-decoration: none;
+}
+.btn-mint:hover { background: #25b0a3; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(46,196,182,.25); }
+.btn-ghost-dark {
+  background: transparent; color: rgba(255,255,255,.7);
+  border: 1.5px solid rgba(255,255,255,.25); border-radius: var(--r-pill);
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 15px; font-weight: 500;
+  padding: 14px 28px; min-height: 50px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  cursor: pointer;
+  transition: all .2s;
+  text-decoration: none;
+}
+.btn-ghost-dark:hover { color: var(--white); border-color: rgba(255,255,255,.5); }
 
 /* ── 리뷰 카드 (Hero 하단) ── */
 .review-demo {
@@ -178,7 +227,7 @@ section { padding: 100px 24px; }
 }
 .problem-icon { font-size: 28px; margin-bottom: 14px; }
 .problem-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
-.problem-card p { font-size: 13px; color: var(--dim); line-height: 1.6; }
+.problem-card p { font-size: 14px; color: var(--dim); line-height: 1.65; }
 
 /* ── 솔루션 섹션 ── */
 .solution-grid {
@@ -194,15 +243,15 @@ section { padding: 100px 24px; }
   font-size: 16px; flex-shrink: 0;
 }
 .solution-item h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-.solution-item p { font-size: 13px; color: var(--dim); line-height: 1.6; }
+.solution-item p { font-size: 14px; color: var(--dim); line-height: 1.65; }
 .solution-visual {
   background: var(--gray); border-radius: var(--r);
   padding: 28px; border: 1px solid var(--gray2);
 }
 .chat-bubble {
-  background: var(--white); border-radius: 12px;
+  background: var(--white); border-radius: var(--r-sm);
   padding: 14px 16px; margin-bottom: 10px;
-  font-size: 13px; line-height: 1.6;
+  font-size: 14px; line-height: 1.65;
   border: 1px solid var(--gray2);
 }
 .chat-bubble.ai {
@@ -210,11 +259,21 @@ section { padding: 100px 24px; }
   border-color: rgba(46,196,182,.25);
 }
 .chat-label { font-size: 10px; font-weight: 700; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+.chat-divider {
+  text-align: center; font-size: 18px;
+  margin: 8px 0; color: var(--mint);
+  line-height: 1;
+}
 
 /* ── 작동 방식 ── */
 .how { background: var(--black); color: var(--white); }
 .how .section-eyebrow { color: var(--mint); }
+.how .section-title { color: var(--white); }
 .how .section-sub { color: rgba(255,255,255,.5); }
+.how-cta-row {
+  display: flex; justify-content: center; align-items: center;
+  gap: 12px; margin-top: 48px; flex-wrap: wrap;
+}
 .steps {
   display: grid; grid-template-columns: repeat(3, 1fr);
   gap: 32px; margin-top: 56px; position: relative;
@@ -223,8 +282,9 @@ section { padding: 100px 24px; }
   content: '';
   position: absolute; top: 28px; left: 15%; right: 15%; height: 1px;
   background: linear-gradient(90deg, var(--mint), var(--red));
+  z-index: 0;
 }
-.step { text-align: center; position: relative; }
+.step { text-align: center; position: relative; z-index: 1; }
 .step-num {
   width: 56px; height: 56px; border-radius: 50%;
   background: var(--black); border: 2px solid rgba(255,255,255,.1);
@@ -232,11 +292,10 @@ section { padding: 100px 24px; }
   font-family: 'Montserrat', sans-serif;
   font-size: 18px; font-weight: 900; color: var(--mint);
   margin: 0 auto 20px;
-  position: relative; z-index: 1;
-  box-shadow: 0 0 0 6px var(--black);
+  position: relative;
 }
 .step h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; color: var(--white); }
-.step p { font-size: 13px; color: rgba(255,255,255,.45); line-height: 1.6; }
+.step p { font-size: 14px; color: rgba(255,255,255,.6); line-height: 1.65; }
 
 /* ── 요금제 ── */
 .pricing { background: var(--gray); }
@@ -251,13 +310,13 @@ section { padding: 100px 24px; }
 }
 .pricing-card.featured {
   background: var(--black); color: var(--white);
-  border-color: var(--black);
-  transform: scale(1.04);
+  border: 2px solid var(--mint);
+  box-shadow: 0 20px 48px rgba(46,196,182,.18), 0 0 0 1px rgba(46,196,182,.1);
 }
 .pricing-badge {
   position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
   background: var(--mint); color: var(--white);
-  font-size: 11px; font-weight: 700; padding: 4px 14px; border-radius: 100px;
+  font-size: 11px; font-weight: 700; padding: 4px 14px; border-radius: var(--r-pill);
   letter-spacing: .5px; white-space: nowrap;
 }
 .plan-name { font-size: 14px; font-weight: 700; color: var(--muted); margin-bottom: 12px; }
@@ -277,7 +336,7 @@ section { padding: 100px 24px; }
 .featured .plan-features li { color: rgba(255,255,255,.7); }
 .plan-features li::before { content: '✓'; color: var(--mint); font-weight: 700; flex-shrink: 0; }
 .btn-plan {
-  width: 100%; padding: 13px; border-radius: 100px;
+  width: 100%; padding: 13px; border-radius: var(--r-pill);
   font-family: 'Noto Sans KR', sans-serif;
   font-size: 14px; font-weight: 700; cursor: pointer;
   transition: all .2s; text-align: center;
@@ -304,7 +363,7 @@ section { padding: 100px 24px; }
 .cta-section p { font-size: 16px; color: rgba(255,255,255,.5); margin-bottom: 40px; }
 .btn-cta {
   background: var(--mint); color: var(--white);
-  border: none; border-radius: 100px;
+  border: none; border-radius: var(--r-pill);
   font-family: 'Noto Sans KR', sans-serif;
   font-size: 17px; font-weight: 700;
   padding: 18px 44px; cursor: pointer;
@@ -316,28 +375,175 @@ section { padding: 100px 24px; }
 /* ── Footer ── */
 footer {
   background: var(--black); border-top: 1px solid rgba(255,255,255,.06);
-  padding: 40px 40px; display: flex;
-  align-items: center; justify-content: space-between;
+  padding: 48px 40px;
+  display: flex; flex-direction: column; gap: 24px;
+}
+.footer-top {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 20px; flex-wrap: wrap;
 }
 .footer-logo {
   font-family: 'Montserrat', sans-serif;
   font-size: 18px; font-weight: 900;
 }
-.footer-copy { font-size: 12px; color: rgba(255,255,255,.3); }
+.footer-business {
+  font-size: 12px; color: rgba(255,255,255,.55);
+  line-height: 1.8; letter-spacing: .1px;
+}
+.footer-business strong { color: rgba(255,255,255,.75); font-weight: 500; }
+.footer-bottom {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+  padding-top: 20px; border-top: 1px solid rgba(255,255,255,.06);
+}
+.footer-copy { font-size: 12px; color: rgba(255,255,255,.45); }
 .footer-links { display: flex; gap: 24px; }
-.footer-links a { font-size: 12px; color: rgba(255,255,255,.3); text-decoration: none; }
-.footer-links a:hover { color: rgba(255,255,255,.6); }
+.footer-links a { font-size: 12px; color: rgba(255,255,255,.55); text-decoration: none; transition: color .2s; }
+.footer-links a:hover { color: rgba(255,255,255,.9); }
+
+/* ── Interaction & A11y (#10) ── */
+*:focus { outline: none; }
+a:focus-visible, button:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+.problem-card, .pricing-card, .step {
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+.problem-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--mint);
+  box-shadow: 0 12px 28px rgba(0,0,0,.06);
+}
+.pricing-card:not(.featured):hover {
+  transform: translateY(-4px);
+  border-color: var(--text);
+  box-shadow: 0 12px 28px rgba(0,0,0,.06);
+}
+
+/* ── Trust strip (#5) ── */
+.trust-strip {
+  margin-top: 28px;
+  display: inline-flex; align-items: center; gap: 24px;
+  flex-wrap: wrap; justify-content: center;
+  font-size: 13px; color: var(--dim);
+}
+.trust-item { display: inline-flex; align-items: center; gap: 6px; }
+.trust-item svg { width: 16px; height: 16px; color: var(--mint); flex-shrink: 0; }
+.trust-sep { width: 1px; height: 12px; background: var(--gray2); }
+
+/* ── Risk reducer (#8) ── */
+.risk-reducer {
+  margin-top: 14px;
+  font-size: 13px; color: var(--muted);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.risk-reducer svg { width: 14px; height: 14px; color: var(--mint); }
+
+/* ── Hero I/O demo (#7) ── */
+.io-demo {
+  margin-top: 56px; width: 100%; max-width: 620px;
+  display: flex; flex-direction: column; gap: 12px;
+  text-align: left;
+}
+.io-card {
+  background: var(--white);
+  border: 1px solid var(--gray2);
+  border-radius: var(--r); padding: 18px 20px;
+  position: relative;
+}
+.io-card.input { background: var(--gray); border-color: var(--gray2); }
+.io-card.output { background: linear-gradient(135deg, rgba(46,196,182,.06), rgba(46,196,182,.02)); border-color: rgba(46,196,182,.3); }
+.io-label {
+  font-size: 10px; font-weight: 700; letter-spacing: .8px;
+  text-transform: uppercase; margin-bottom: 8px;
+  color: var(--muted); display: flex; align-items: center; gap: 6px;
+}
+.io-card.output .io-label { color: var(--mint); }
+.io-text { font-size: 14px; line-height: 1.7; color: var(--text); word-break: keep-all; overflow-wrap: break-word; }
+.io-card.input .io-text { color: var(--dim); }
+.io-stars { color: #ffb800; font-size: 13px; margin-bottom: 4px; letter-spacing: 1px; }
+.io-arrow {
+  align-self: center;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 700; color: var(--mint);
+  letter-spacing: .5px; text-transform: uppercase;
+  padding: 2px 0;
+}
+.io-arrow svg { width: 14px; height: 14px; }
+
+/* ── Bad-AI example in problem section (#7) ── */
+.problem-example {
+  margin-top: 32px; max-width: 560px;
+  background: var(--white); border: 1px solid var(--gray2);
+  border-radius: var(--r); padding: 20px;
+  position: relative;
+}
+.problem-example::before {
+  content: '';
+  position: absolute; left: 20px; top: -1px; width: 56px; height: 3px;
+  background: var(--red); border-radius: 0 0 3px 3px;
+}
+.problem-example-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; color: var(--red);
+  letter-spacing: .5px; text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.problem-example-text { font-size: 14px; line-height: 1.75; color: var(--dim); word-break: keep-all; }
+
+/* ── SVG icons (#6) ── */
+.problem-icon { color: var(--mint); margin-bottom: 16px; line-height: 0; }
+.problem-icon svg { width: 28px; height: 28px; display: block; }
+.solution-dot svg { width: 18px; height: 18px; color: var(--white); }
+
+/* ── Mobile sticky CTA (#8) ── */
+.mobile-cta-bar {
+  display: none;
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: rgba(255,255,255,.96);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--gray2);
+}
+.mobile-cta-bar a {
+  display: block; width: 100%;
+  background: var(--black); color: var(--white);
+  text-align: center; text-decoration: none;
+  font-size: 15px; font-weight: 700;
+  padding: 14px; border-radius: var(--r-pill);
+}
+.mobile-cta-bar a:active { background: #333; }
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
   nav { padding: 14px 20px; }
-  .nav-links { display: none; }
+  .nav-links a:not(.nav-cta) { display: none; }
+  .nav-links { gap: 0; }
+  .nav-cta { padding: 8px 16px; font-size: 13px; }
   .review-demo { grid-template-columns: 1fr; }
   .card-arrow { display: none; }
   .problem-grid, .steps, .pricing-grid { grid-template-columns: 1fr; }
+  .steps::before { display: none; }
   .solution-grid { grid-template-columns: 1fr; }
   .pricing-card.featured { transform: none; }
-  footer { flex-direction: column; gap: 16px; text-align: center; }
+  footer { text-align: center; }
+  .footer-top { flex-direction: column; gap: 16px; }
+  .footer-bottom { justify-content: center; }
+
+  /* sticky CTA */
+  body { padding-bottom: 84px; }
+  .mobile-cta-bar { display: block; }
+
+  /* trust strip on mobile */
+  .trust-strip { gap: 14px; font-size: 12px; }
+  .trust-sep { display: none; }
+
+  /* hero io-demo a bit tighter */
+  .io-demo { margin-top: 40px; }
+  .io-card { padding: 16px; }
+  .io-text { font-size: 13.5px; }
 }
 </style>
 </head>
@@ -363,29 +569,59 @@ footer {
   </h1>
   <p class="hero-sub">
     로봇 같은 답글은 손님이 바로 압니다.<br>
-    ReBorn!은 사장님의 말투를 학습해서 손님도 구분 못하는 답글을 만듭니다.
+    ReBorn!은 사장님의 말투를 학습해서 사장님이 직접 쓴 것 같은 답글을 만듭니다.
   </p>
   <div class="hero-btns">
     <a href="survey.html" class="btn-primary">지금 무료로 시작하기 →</a>
     <a href="review.html" class="btn-secondary">답글 생성하러 가기</a>
   </div>
 
-  <div class="review-demo">
-    <div class="review-card bad">
-      <div class="card-label">❌ 기존 AI 답글</div>
-      <div class="card-text">
-        소중한 고객님, 귀한 리뷰 감사드립니다.<br>
-        항상 최선을 다하는 저희 가게를 찾아주셔서 감사합니다.<br>
-        행복한 하루 되세요! 😊
-      </div>
+  <div class="risk-reducer">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+    카드 등록 없이, 1분이면 끝납니다
+  </div>
+
+  <div class="trust-strip">
+    <div class="trust-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+      실제 매장에서 검증한 답글 엔진
     </div>
-    <div class="review-card good">
-      <div class="card-label">✅ 실제 ReBorn! 답글</div>
-      <div class="card-text">
-        바다향기님 오늘도 찾아와주셨네요!😍<br>
-        벌써 연어덮밥을 세 번째 주문해주셨다니..😭😭<br>
-        단골 고객님이 생긴 거 같아서 너무 행복하답니다<br>
-        다음에도 꼭 또 와주세요 기다릴게요💕
+    <div class="trust-sep"></div>
+    <div class="trust-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7-6.5-4.5L5.5 20l2-7L2 9h7z"/></svg>
+      Claude AI 기반 자연어 처리
+    </div>
+    <div class="trust-sep"></div>
+    <div class="trust-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      개인정보 안전하게 보호
+    </div>
+  </div>
+
+  <div class="io-demo">
+    <div class="io-card input">
+      <div class="io-label">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        손님 리뷰
+      </div>
+      <div class="io-stars">★★★★★</div>
+      <div class="io-text">연어가 너무 신선해요!! 단골 될게요 :)</div>
+    </div>
+
+    <div class="io-arrow">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+      ReBorn! AI 생성
+    </div>
+
+    <div class="io-card output">
+      <div class="io-label">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        사장님 말투 답글
+      </div>
+      <div class="io-text">
+        바다향기님 주문해주셔서 감사합니다❤️<br>
+        신선하다고 해주시니 저희가 매일 직송으로 받는 보람이 있네요😊<br>
+        단골 기다리고 있겠습니다!!
       </div>
     </div>
   </div>
@@ -397,19 +633,38 @@ footer {
     <div class="section-eyebrow">문제</div>
     <h2 class="section-title">손님은 이미 알고 있습니다</h2>
     <p class="section-sub">배민 리뷰 답글에 AI가 대신 쓴 티가 나면 오히려 역효과입니다.</p>
+
+    <div class="problem-example">
+      <div class="problem-example-label">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+        흔한 AI 답글
+      </div>
+      <div class="problem-example-text">
+        소중한 고객님, 귀한 리뷰 감사드립니다.<br>
+        항상 최선을 다하는 저희 가게를 찾아주셔서 감사합니다.<br>
+        행복한 하루 되세요! 😊
+      </div>
+    </div>
+
     <div class="problem-grid">
       <div class="problem-card">
-        <div class="problem-icon">🤖</div>
+        <div class="problem-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="2"/><path d="M12 7V3M9 3h6"/><circle cx="9" cy="13" r="1" fill="currentColor"/><circle cx="15" cy="13" r="1" fill="currentColor"/><path d="M9.5 17h5"/></svg>
+        </div>
         <h3>로봇 같은 답글</h3>
         <p>"소중한 고객님", "귀한 리뷰"처럼 어디서나 보던 문구는 손님이 바로 눈치챕니다.</p>
       </div>
       <div class="problem-card">
-        <div class="problem-icon">📋</div>
+        <div class="problem-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/><path d="M11 13h6M11 16h4"/></svg>
+        </div>
         <h3>복붙 느낌</h3>
         <p>모든 리뷰에 똑같은 패턴의 답글이 달리면 성의 없어 보이고 신뢰가 떨어집니다.</p>
       </div>
       <div class="problem-card">
-        <div class="problem-icon">⏰</div>
+        <div class="problem-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        </div>
         <h3>시간이 없어요</h3>
         <p>요리하고 배달하다 보면 리뷰 답글 달 시간이 없습니다. 그래서 안 달게 됩니다.</p>
       </div>
@@ -425,21 +680,27 @@ footer {
     <div class="solution-grid">
       <div class="solution-list">
         <div class="solution-item">
-          <div class="solution-dot">🧬</div>
+          <div class="solution-dot">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3c0 4 10 4 10 9s-10 5-10 9"/><path d="M17 3c0 4-10 4-10 9s10 5 10 9"/><path d="M9 6h6M9 18h6"/></svg>
+          </div>
           <div>
             <h3>말투 DNA 복제</h3>
             <p>사장님이 직접 쓴 답글 3개만 있으면 말투, 이모지 습관, 문장 구조를 전부 학습합니다.</p>
           </div>
         </div>
         <div class="solution-item">
-          <div class="solution-dot">🎯</div>
+          <div class="solution-dot">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+          </div>
           <div>
             <h3>리뷰별 맞춤 대응</h3>
             <p>칭찬엔 같이 기뻐하고, 불만엔 무겁게 사과하고, 단골엔 특별하게 반응합니다.</p>
           </div>
         </div>
         <div class="solution-item">
-          <div class="solution-dot">🔄</div>
+          <div class="solution-dot">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
+          </div>
           <div>
             <h3>매번 다른 표현</h3>
             <p>같은 표현을 반복하지 않고 맥락에 맞는 자연스러운 표현으로 매번 새롭게 생성합니다.</p>
@@ -451,7 +712,7 @@ footer {
         <div class="chat-bubble">
           ⭐⭐⭐⭐⭐ 연어가 너무 신선해요!! 단골 될게요
         </div>
-        <div style="text-align:center;font-size:20px;margin:8px 0;color:#2ec4b6">↓ AI 생성</div>
+        <div class="chat-divider">↓ AI 생성</div>
         <div class="chat-bubble ai">
           바다향기님 주문해주셔서 감사합니다❤️ 신선하다고 해주시니 저희가 매일 직송으로 받는 보람이 있네요😊 단골 기다리고 있겠습니다!!
         </div>
@@ -464,7 +725,7 @@ footer {
 <section class="how" id="how">
   <div class="container">
     <div class="section-eyebrow">작동 방식</div>
-    <h2 class="section-title" style="color:var(--white)">3단계로 끝납니다</h2>
+    <h2 class="section-title">3단계로 끝납니다</h2>
     <p class="section-sub">복잡한 설정 없이 딱 3번만 하면 됩니다.</p>
     <div class="steps">
       <div class="step">
@@ -483,9 +744,9 @@ footer {
         <p>사장님 말투로 생성된 답글을 복사해서 배민에 붙여넣으면 끝입니다.</p>
       </div>
     </div>
-    <div style="text-align:center;margin-top:48px">
-      <a href="survey.html" style="background:var(--mint);color:#fff;border:none;border-radius:100px;font-family:'Noto Sans KR',sans-serif;font-size:15px;font-weight:700;padding:14px 36px;text-decoration:none;display:inline-block;margin-right:12px;transition:background .2s;">DNA 등록하기 →</a>
-      <a href="review.html" style="background:transparent;color:rgba(255,255,255,.6);border:1.5px solid rgba(255,255,255,.2);border-radius:100px;font-family:'Noto Sans KR',sans-serif;font-size:15px;font-weight:500;padding:13px 28px;text-decoration:none;display:inline-block;transition:all .2s;">답글 생성하기</a>
+    <div class="how-cta-row">
+      <a href="survey.html" class="btn-mint">DNA 등록하기 →</a>
+      <a href="review.html" class="btn-ghost-dark">답글 생성하기</a>
     </div>
   </div>
 </section>
@@ -495,12 +756,12 @@ footer {
   <div class="container">
     <div class="section-eyebrow">요금제</div>
     <h2 class="section-title">합리적인 가격</h2>
-    <p class="section-sub">월 구독료 하나로 매달 수백 개의 답글을 해결하세요.</p>
+    <p class="section-sub">답글 하나에 5분, 한 달이면 몇 시간. 그 시간을 ReBorn!이 돌려드립니다.</p>
     <div class="pricing-grid">
       <div class="pricing-card">
         <div class="plan-name">FREE</div>
         <div class="plan-price">0<span>원</span></div>
-        <div class="plan-period">영원히 무료</div>
+        <div class="plan-period">기본 기능 무료</div>
         <ul class="plan-features">
           <li>월 10건 답글 생성</li>
           <li>DNA 1개 등록</li>
@@ -546,14 +807,34 @@ footer {
 
 <!-- Footer -->
 <footer>
-  <div class="footer-logo" style="color:white"><span style="color:var(--mint)">Re</span><span style="color:var(--red)">Born!</span></div>
-  <div class="footer-copy">© 2026 ReBorn! All rights reserved.</div>
-  <div class="footer-links">
-    <a href="#">이용약관</a>
-    <a href="#">개인정보처리방침</a>
-    <a href="#">문의</a>
+  <div class="footer-top">
+    <div class="footer-logo"><span style="color:var(--mint)">Re</span><span style="color:var(--red)">Born!</span></div>
+    <div class="footer-links">
+      <a href="terms.html">이용약관</a>
+      <a href="privacy.html">개인정보처리방침</a>
+      <a href="mailto:contact@reborn.kr">문의</a>
+    </div>
+  </div>
+
+  <!--
+    아래 사업자 정보는 전자상거래법상 유료 결제 서비스 출시 전 필수 항목입니다.
+    [대괄호] 안의 값을 실제 정보로 교체해 주세요.
+  -->
+  <div class="footer-business">
+    <strong>ReBorn!</strong> &nbsp;|&nbsp; 대표 [대표자명] &nbsp;|&nbsp; 사업자등록번호 [000-00-00000]<br>
+    주소 [사업장 주소] &nbsp;|&nbsp; 통신판매업신고 [제0000-도시구-0000호]<br>
+    고객문의 <a href="mailto:contact@reborn.kr" style="color:inherit;text-decoration:underline">contact@reborn.kr</a>
+  </div>
+
+  <div class="footer-bottom">
+    <div class="footer-copy">© 2026 ReBorn! All rights reserved.</div>
   </div>
 </footer>
+
+<!-- Mobile sticky CTA -->
+<div class="mobile-cta-bar">
+  <a href="survey.html">무료로 시작하기 →</a>
+</div>
 
 </body>
 </html>
