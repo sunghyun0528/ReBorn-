@@ -80,13 +80,30 @@ nav {
 
 /* 로그인 관련 nav */
 .nav-login { cursor: pointer; }
-.nav-user { display: flex; align-items: center; gap: 16px; }
-.nav-username {
-  font-size: 14px; font-weight: 700; color: var(--text);
-  display: flex; align-items: center; gap: 6px;
+.nav-user { display: flex; align-items: center; gap: 14px; }
+.user-chip {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--gray); border: 1px solid var(--gray2);
+  border-radius: 100px; padding: 5px 14px 5px 6px;
 }
-.nav-username::before {
-  content: '👤'; font-size: 13px;
+.nav-username {
+  font-size: 13px; font-weight: 700; color: var(--text);
+}
+.plan-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 800;
+  padding: 3px 9px; border-radius: 100px;
+  letter-spacing: .3px;
+}
+.plan-badge.free {
+  background: #eceef0; color: #6b7280;
+}
+.plan-badge.pro {
+  background: rgba(59,158,255,.14); color: #2b7fd4;
+}
+.plan-badge.business {
+  background: linear-gradient(135deg, #ffd86b, #ffb01f);
+  color: #7a4d00;
 }
 .nav-logout {
   font-size: 13px !important; color: var(--muted) !important;
@@ -665,7 +682,10 @@ a:focus-visible, button:focus-visible {
     <a href="#" class="nav-cta" id="navStart" onclick="handleStart();return false;">무료로 시작하기</a>
     <!-- 로그인 상태 -->
     <div class="nav-user" id="navUser" style="display:none">
-      <span class="nav-username" id="navUsername"></span>
+      <div class="user-chip">
+        <span class="plan-badge" id="planBadge"></span>
+        <span class="nav-username" id="navUsername"></span>
+      </div>
       <a href="#" class="nav-cta" id="navDna" onclick="handleStart();return false;">DNA 생성하기</a>
       <a href="#" class="nav-logout" onclick="doLogout();return false;">로그아웃</a>
     </div>
@@ -1017,6 +1037,27 @@ function applyAuthUI() {
     navStart.style.display = 'none';
     navUser.style.display = 'flex';
     document.getElementById('navUsername').textContent = session.username;
+
+    // 플랜 뱃지
+    const plan = session.plan || 'free';
+    const PLAN_BADGE = {
+      free: {
+        label: 'FREE',
+        svg: '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>',
+      },
+      pro: {
+        label: 'PRO',
+        svg: '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h8l-1 8 10-12h-8z"/></svg>',
+      },
+      business: {
+        label: 'BUSINESS',
+        svg: '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l3 11h12l3-11-6 4-3-7-3 7z"/></svg>',
+      },
+    };
+    const badge = PLAN_BADGE[plan] || PLAN_BADGE.free;
+    const badgeEl = document.getElementById('planBadge');
+    badgeEl.className = 'plan-badge ' + plan;
+    badgeEl.innerHTML = badge.svg + badge.label;
   } else {
     navLogin.style.display = '';
     navStart.style.display = '';
@@ -1132,7 +1173,7 @@ async function submitAuth() {
       if (!data.ok) { showAuthError(data.error); return; }
 
       localStorage.setItem('rb_session', JSON.stringify({
-        username, store_code: data.store_code, store_name: data.store_name,
+        username, store_code: data.store_code, store_name: data.store_name, plan: data.plan || 'free',
       }));
       closeAuth();
       // 로그인 시 답글 생성 페이지로
