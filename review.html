@@ -320,6 +320,8 @@ textarea { min-height: 100px; line-height: 1.6; }
 
     <div class="notice" id="dnaNotice"></div>
 
+    <div id="usageDisplay" style="display:none;align-items:center;gap:8px;font-size:12px;padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:20px"></div>
+
     <!-- 리뷰 입력 카드 -->
     <div class="card">
       <div class="card-title">📋 리뷰 입력</div>
@@ -411,8 +413,10 @@ textarea { min-height: 100px; line-height: 1.6; }
 // ── 상태 ──
 let dnaPrompt    = null;
 let storeName    = null;
+let storeCode    = null;
 let imageFile    = null;
 let selectedStar = 5;
+let usageInfo    = null;
 let history      = JSON.parse(localStorage.getItem('rb_history') || '[]');
 
 // ── 초기화 ──
@@ -439,13 +443,41 @@ async function loadDNA(storeCode) {
 function setDNA(owner) {
   dnaPrompt = owner.dna_prompt;
   storeName = owner.store_name;
+  storeCode = owner.store_code;
+
+  // 사용량 계산
+  const PLAN_LIMITS = { free: 10, pro: 200, business: 999999 };
+  const plan  = owner.plan || 'free';
+  const limit = PLAN_LIMITS[plan] ?? 10;
+  const d = new Date();
+  const thisMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const used = owner.usage_month === thisMonth ? (owner.usage_count || 0) : 0;
+  usageInfo = { plan, limit, used, remaining: limit - used };
+
   document.getElementById('storeNameBadge').textContent = storeName;
   document.getElementById('storeBadge').style.display = 'flex';
   document.getElementById('dnaNotice').textContent =
     `🧬 ${storeName} DNA가 로드되었습니다. 리뷰를 입력하면 사장님 말투로 답글을 생성합니다.`;
   document.getElementById('mainContent').style.display = 'block';
   document.getElementById('noStore').style.display = 'none';
+  updateUsageDisplay();
   renderHistory();
+}
+
+function updateUsageDisplay() {
+  if (!usageInfo) return;
+  const el = document.getElementById('usageDisplay');
+  if (!el) return;
+  const planLabel = { free: 'FREE', pro: 'PRO', business: 'BUSINESS' }[usageInfo.plan] || 'FREE';
+  const remaining = Math.max(0, usageInfo.remaining);
+  const isLow = remaining <= 3 && usageInfo.plan === 'free';
+  el.innerHTML = `
+    <span style="font-weight:700;color:${isLow ? '#e05555' : 'var(--mint)'}">${planLabel}</span>
+    <span style="color:var(--muted)">이번 달 남은 횟수</span>
+    <span style="font-weight:700;color:${isLow ? '#e05555' : 'var(--text)'}">${remaining}건</span>
+    ${usageInfo.plan === 'free' ? '<a href="/#pricing" style="color:var(--accent);text-decoration:none;font-size:11px;margin-left:4px">업그레이드</a>' : ''}
+  `;
+  el.style.display = 'flex';
 }
 
 function showNoStore() {
@@ -533,10 +565,10 @@ async function generate() {
       setLoadingText('이미지 업로드 중...', '잠시만 기다려주세요');
       const imageUrl = await uploadReviewImage(imageFile);
       setLoadingText('이미지에서 리뷰를 읽는 중...', '닉네임·별점·내용을 자동 분석합니다');
-      body = { dna_prompt: dnaPrompt, image_url: imageUrl };
+      body = { dna_prompt: dnaPrompt, image_url: imageUrl, store_code: storeCode };
     } else {
       setLoadingText('답글을 생성하고 있습니다...', '사장님 말투 DNA를 적용 중입니다');
-      body = { dna_prompt: dnaPrompt, review_text: reviewText, nickname, stars: selectedStar };
+      body = { dna_prompt: dnaPrompt, review_text: reviewText, nickname, stars: selectedStar, store_code: storeCode };
     }
 
     const res  = await fetch('/api/generate', {
@@ -545,7 +577,21 @@ async function generate() {
       body:    JSON.stringify(body),
     });
     const data = await res.json();
+
+    // 한도 초과
+    if (data.limit_exceeded) {
+      setLoading(false);
+      showLimitExceeded(data.limit, data.plan);
+      return;
+    }
+
     if (!data.ok) throw new Error(data.error);
+
+    // 사용량 갱신
+    if (data.usage) {
+      usageInfo = data.usage;
+      updateUsageDisplay();
+    }
 
     showResult(data.reply);
     saveHistory(nickname || '손님', reviewText || '이미지 업로드', data.reply);
@@ -555,6 +601,19 @@ async function generate() {
   } finally {
     setLoading(false);
   }
+}
+
+function showLimitExceeded(limit, plan) {
+  const el = document.getElementById('errorWrap');
+  el.innerHTML = `
+    <div style="font-weight:700;margin-bottom:6px">🚫 이번 달 생성 한도를 모두 사용했습니다</div>
+    <div style="font-size:13px;line-height:1.6">
+      현재 <b>${plan === 'free' ? 'FREE' : plan.toUpperCase()}</b> 플랜은 월 ${limit}건까지 생성할 수 있습니다.<br>
+      더 많은 답글이 필요하시면 <a href="/#pricing" style="color:var(--accent);font-weight:700;text-decoration:none">플랜 업그레이드</a>를 이용해주세요.
+    </div>
+  `;
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 // ── UI 헬퍼 ──
