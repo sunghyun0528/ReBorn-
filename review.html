@@ -320,7 +320,7 @@ textarea { min-height: 100px; line-height: 1.6; }
 
     <div class="notice" id="dnaNotice"></div>
 
-    <div id="usageDisplay" style="display:none;align-items:center;gap:8px;font-size:12px;padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:20px"></div>
+    <div id="usageDisplay" style="display:none;align-items:center;gap:8px;font-size:12px;padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:20px;width:100%"></div>
 
     <!-- 리뷰 입력 카드 -->
     <div class="card">
@@ -468,14 +468,43 @@ function updateUsageDisplay() {
   if (!usageInfo) return;
   const el = document.getElementById('usageDisplay');
   if (!el) return;
-  const planLabel = { free: 'FREE', pro: 'PRO', business: 'BUSINESS' }[usageInfo.plan] || 'FREE';
+
+  const PLAN_STYLE = {
+    free: {
+      label: 'FREE',
+      icon: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>',
+      bg: '#eceef0',
+      color: '#6b7280',
+      border: 'transparent',
+    },
+    pro: {
+      label: 'PRO',
+      icon: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h8l-1 8 10-12h-8z"/></svg>',
+      bg: 'rgba(59,158,255,.14)',
+      color: '#2b7fd4',
+      border: 'transparent',
+    },
+    business: {
+      label: 'BUSINESS',
+      icon: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l3 11h12l3-11-6 4-3-7-3 7z"/></svg>',
+      bg: 'linear-gradient(135deg, #ffd86b, #ffb01f)',
+      color: '#7a4d00',
+      border: 'transparent',
+    },
+  };
+
+  const style = PLAN_STYLE[usageInfo.plan] || PLAN_STYLE.free;
   const remaining = Math.max(0, usageInfo.remaining);
+  const isUnlimited = usageInfo.plan === 'business';
   const isLow = remaining <= 3 && usageInfo.plan === 'free';
+
   el.innerHTML = `
-    <span style="font-weight:700;color:${isLow ? '#e05555' : 'var(--mint)'}">${planLabel}</span>
-    <span style="color:var(--muted)">이번 달 남은 횟수</span>
-    <span style="font-weight:700;color:${isLow ? '#e05555' : 'var(--text)'}">${remaining}건</span>
-    ${usageInfo.plan === 'free' ? '<a href="/#pricing" style="color:var(--accent);text-decoration:none;font-size:11px;margin-left:4px">업그레이드</a>' : ''}
+    <span style="display:inline-flex;align-items:center;gap:5px;font-weight:800;padding:4px 11px;border-radius:100px;background:${style.bg};color:${style.color};letter-spacing:.3px">
+      ${style.icon}${style.label}
+    </span>
+    <span style="color:var(--muted)">이번 달 ${isUnlimited ? '사용량' : '남은 횟수'}</span>
+    <span style="font-weight:700;color:${isLow ? '#e05555' : 'var(--text)'}">${isUnlimited ? '무제한' : remaining + '건'}</span>
+    ${usageInfo.plan === 'free' ? '<a href="/#pricing" style="color:var(--accent);text-decoration:none;font-size:11px;margin-left:auto;font-weight:700">업그레이드 →</a>' : ''}
   `;
   el.style.display = 'flex';
 }
