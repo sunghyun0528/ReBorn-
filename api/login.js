@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     const hash = hashPassword(password);
 
     const queryRes = await fetch(
-      `${process.env.SUPABASE_URL}/rest/v1/owners?username=eq.${username}&select=store_code,store_name,password_hash`,
+      `${process.env.SUPABASE_URL}/rest/v1/owners?username=eq.${username}&select=store_code,store_name,password_hash,plan`,
       {
         headers: {
           apikey: process.env.SUPABASE_KEY,
@@ -45,6 +45,7 @@ export default async function handler(req, res) {
       ok: true,
       store_code: user.store_code,
       store_name: user.store_name,
+      plan: user.plan || 'free',
     });
 
   } catch (err) {
