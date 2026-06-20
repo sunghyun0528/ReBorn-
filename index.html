@@ -78,6 +78,110 @@ nav {
 }
 .nav-cta:hover { background: #333 !important; color: var(--white) !important; }
 
+/* 로그인 관련 nav */
+.nav-login { cursor: pointer; }
+.nav-user { display: flex; align-items: center; gap: 16px; }
+.nav-username {
+  font-size: 14px; font-weight: 700; color: var(--text);
+  display: flex; align-items: center; gap: 6px;
+}
+.nav-username::before {
+  content: '👤'; font-size: 13px;
+}
+.nav-logout {
+  font-size: 13px !important; color: var(--muted) !important;
+  cursor: pointer;
+}
+.nav-logout:hover { color: var(--text) !important; }
+
+/* 로그인 모달 */
+.auth-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,.45);
+  backdrop-filter: blur(4px);
+  align-items: center; justify-content: center;
+  padding: 24px;
+}
+.auth-overlay.on { display: flex; }
+.auth-modal {
+  background: var(--white);
+  border-radius: 20px;
+  padding: 40px 32px 32px;
+  width: 100%; max-width: 380px;
+  position: relative;
+  box-shadow: 0 24px 60px rgba(0,0,0,.25);
+  animation: modalUp .3s ease;
+}
+@keyframes modalUp {
+  from { opacity: 0; transform: translateY(20px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.auth-close {
+  position: absolute; top: 16px; right: 16px;
+  background: var(--gray); border: none;
+  width: 30px; height: 30px; border-radius: 50%;
+  font-size: 14px; color: var(--dim); cursor: pointer;
+  transition: background .2s;
+}
+.auth-close:hover { background: var(--gray2); }
+.auth-logo {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 24px; font-weight: 900;
+  text-align: center; margin-bottom: 20px;
+}
+.auth-title {
+  font-size: 22px; font-weight: 900;
+  text-align: center; margin-bottom: 6px;
+}
+.auth-desc {
+  font-size: 13px; color: var(--muted);
+  text-align: center; margin-bottom: 24px;
+}
+.auth-field { margin-bottom: 16px; }
+.auth-field label {
+  display: block; font-size: 12px; font-weight: 700;
+  color: var(--dim); margin-bottom: 6px;
+}
+.auth-field input {
+  width: 100%; padding: 12px 14px;
+  border: 1px solid var(--gray2); border-radius: 10px;
+  font-size: 14px; font-family: 'Noto Sans KR', sans-serif;
+  outline: none; transition: border-color .2s, box-shadow .2s;
+}
+.auth-field input:focus {
+  border-color: var(--mint);
+  box-shadow: 0 0 0 3px rgba(46,196,182,.12);
+}
+.auth-hint { font-size: 11px; color: var(--muted); margin-top: 5px; line-height: 1.4; }
+.auth-error {
+  background: #fff5f5; border: 1px solid #ffd0d0;
+  border-radius: 8px; padding: 10px 13px;
+  font-size: 12.5px; color: #c0392b; margin-bottom: 14px;
+  line-height: 1.5;
+}
+.auth-submit {
+  width: 100%; padding: 14px;
+  background: var(--black); color: var(--white);
+  border: none; border-radius: 100px;
+  font-size: 15px; font-weight: 700;
+  font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer; transition: background .2s;
+}
+.auth-submit:hover { background: #333; }
+.auth-submit:disabled { background: var(--gray2); color: var(--muted); cursor: not-allowed; }
+.auth-switch {
+  text-align: center; margin-top: 18px;
+  font-size: 13px; color: var(--muted);
+}
+.auth-switch button {
+  background: none; border: none;
+  color: var(--mint); font-weight: 700;
+  cursor: pointer; font-size: 13px;
+  font-family: 'Noto Sans KR', sans-serif;
+  margin-left: 4px;
+}
+
 /* ── Hero ── */
 .hero {
   min-height: 100vh;
@@ -556,9 +660,46 @@ a:focus-visible, button:focus-visible {
     <a href="#how">작동 방식</a>
     <a href="#pricing">요금제</a>
     <a href="review.html">답글 생성</a>
-    <a href="survey.html" class="nav-cta">무료로 시작하기</a>
+    <!-- 비로그인 상태 -->
+    <a href="#" class="nav-login" id="navLogin" onclick="openAuth('login');return false;">로그인</a>
+    <a href="#" class="nav-cta" id="navStart" onclick="handleStart();return false;">무료로 시작하기</a>
+    <!-- 로그인 상태 -->
+    <div class="nav-user" id="navUser" style="display:none">
+      <span class="nav-username" id="navUsername"></span>
+      <a href="#" class="nav-cta" id="navDna" onclick="handleStart();return false;">DNA 생성하기</a>
+      <a href="#" class="nav-logout" onclick="doLogout();return false;">로그아웃</a>
+    </div>
   </div>
 </nav>
+
+<!-- 로그인/회원가입 모달 -->
+<div class="auth-overlay" id="authOverlay" onclick="if(event.target===this)closeAuth()">
+  <div class="auth-modal">
+    <button class="auth-close" onclick="closeAuth()">✕</button>
+    <div class="auth-logo"><span class="logo-re">Re</span><span class="logo-born">Born!</span></div>
+    <h2 class="auth-title" id="authModalTitle">로그인</h2>
+    <p class="auth-desc" id="authModalDesc">사장님 계정으로 로그인하세요</p>
+
+    <div class="auth-field">
+      <label>아이디</label>
+      <input type="text" id="authUsername" placeholder="영문, 숫자 4~20자" autocomplete="username">
+    </div>
+    <div class="auth-field">
+      <label>비밀번호</label>
+      <input type="password" id="authPassword" placeholder="8자 이상, 영문+숫자" autocomplete="current-password">
+      <div class="auth-hint" id="authPwHint" style="display:none">8자 이상이며 영문과 숫자를 모두 포함해야 합니다</div>
+    </div>
+
+    <div class="auth-error" id="authError" style="display:none"></div>
+
+    <button class="auth-submit" id="authSubmit" onclick="submitAuth()">로그인</button>
+
+    <div class="auth-switch">
+      <span id="authSwitchLabel">계정이 없으신가요?</span>
+      <button onclick="switchAuthMode()" id="authSwitchBtn">회원가입</button>
+    </div>
+  </div>
+</div>
 
 <!-- Hero -->
 <section class="hero">
@@ -572,7 +713,7 @@ a:focus-visible, button:focus-visible {
     ReBorn!은 사장님의 말투를 학습해서 사장님이 직접 쓴 것 같은 답글을 만듭니다.
   </p>
   <div class="hero-btns">
-    <a href="survey.html" class="btn-primary">지금 무료로 시작하기 →</a>
+    <a href="#" class="btn-primary" onclick="handleStart();return false;">지금 무료로 시작하기 →</a>
     <a href="review.html" class="btn-secondary">답글 생성하러 가기</a>
   </div>
 
@@ -621,7 +762,7 @@ a:focus-visible, button:focus-visible {
       <div class="io-text">
         바다향기님 주문해주셔서 감사합니다❤️<br>
         신선하다고 해주시니 저희가 매일 직송으로 받는 보람이 있네요😊<br>
-        단골 고객님이 생긴 거 같아서 너무 행복하답니다! 다음에도 꼭 찾아와주세요💕💕!
+        단골 고객님이 생긴 거 같아서 너무 행복하답니다💕
       </div>
     </div>
   </div>
@@ -734,7 +875,7 @@ a:focus-visible, button:focus-visible {
         <!-- 3. 사장님 말투 답글 -->
         <div class="chat-bubble ai">
           <div style="font-size:10px;font-weight:700;color:var(--mint);margin-bottom:6px;letter-spacing:.3px">✅ 사장님 말투 답글</div>
-          바다향기님 주문해주셔서 감사합니다❤️ 신선하다고 해주시니 저희가 매일 직송으로 받는 보람이 있네요😊 단골 고객님이 생긴 거 같아서 너무 행복하답니다! 다음에도 꼭 찾아와주세요💕💕
+          바다향기님 주문해주셔서 감사합니다❤️ 신선하다고 해주시니 저희가 매일 직송으로 받는 보람이 있네요😊 다음에도 꼭 또 찾아와주세요!
         </div>
       </div>
     </div>
@@ -853,8 +994,168 @@ a:focus-visible, button:focus-visible {
 
 <!-- Mobile sticky CTA -->
 <div class="mobile-cta-bar">
-  <a href="survey.html">무료로 시작하기 →</a>
+  <a href="#" onclick="handleStart();return false;">무료로 시작하기 →</a>
 </div>
+
+<script>
+// ── 로그인 상태 관리 ──
+let authMode = 'login';
+
+function getSession() {
+  try { return JSON.parse(localStorage.getItem('rb_session') || 'null'); }
+  catch { return null; }
+}
+
+function applyAuthUI() {
+  const session = getSession();
+  const navLogin = document.getElementById('navLogin');
+  const navStart = document.getElementById('navStart');
+  const navUser  = document.getElementById('navUser');
+
+  if (session && session.username) {
+    navLogin.style.display = 'none';
+    navStart.style.display = 'none';
+    navUser.style.display = 'flex';
+    document.getElementById('navUsername').textContent = session.username;
+  } else {
+    navLogin.style.display = '';
+    navStart.style.display = '';
+    navUser.style.display = 'none';
+  }
+}
+
+// "무료로 시작하기 / DNA 생성하기" 클릭 핸들러
+function handleStart() {
+  const session = getSession();
+  if (session && session.username) {
+    // 로그인 상태 → 설문으로
+    location.href = 'survey.html';
+  } else {
+    // 비로그인 → 로그인 모달
+    openAuth('login');
+  }
+}
+
+// ── 모달 ──
+function openAuth(mode) {
+  authMode = mode;
+  updateAuthModal();
+  document.getElementById('authOverlay').classList.add('on');
+  document.getElementById('authError').style.display = 'none';
+}
+function closeAuth() {
+  document.getElementById('authOverlay').classList.remove('on');
+  document.getElementById('authUsername').value = '';
+  document.getElementById('authPassword').value = '';
+}
+function switchAuthMode() {
+  authMode = authMode === 'login' ? 'signup' : 'login';
+  updateAuthModal();
+  document.getElementById('authError').style.display = 'none';
+}
+function updateAuthModal() {
+  const title = document.getElementById('authModalTitle');
+  const desc  = document.getElementById('authModalDesc');
+  const submit = document.getElementById('authSubmit');
+  const switchLabel = document.getElementById('authSwitchLabel');
+  const switchBtn = document.getElementById('authSwitchBtn');
+  const pwHint = document.getElementById('authPwHint');
+
+  if (authMode === 'login') {
+    title.textContent = '로그인';
+    desc.textContent  = '사장님 계정으로 로그인하세요';
+    submit.textContent = '로그인';
+    switchLabel.textContent = '계정이 없으신가요?';
+    switchBtn.textContent = '회원가입';
+    pwHint.style.display = 'none';
+  } else {
+    title.textContent = '회원가입';
+    desc.textContent  = '아이디와 비밀번호를 만들어주세요';
+    submit.textContent = '회원가입';
+    switchLabel.textContent = '이미 계정이 있으신가요?';
+    switchBtn.textContent = '로그인';
+    pwHint.style.display = 'block';
+  }
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('authError');
+  el.textContent = '⚠️ ' + msg;
+  el.style.display = 'block';
+}
+
+async function submitAuth() {
+  const username = document.getElementById('authUsername').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const submit = document.getElementById('authSubmit');
+
+  if (authMode === 'signup') {
+    if (!/^[a-zA-Z0-9]{4,20}$/.test(username)) {
+      return showAuthError('아이디는 영문, 숫자 4~20자로 입력해주세요.');
+    }
+    if (password.length < 8 || !/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+      return showAuthError('비밀번호는 8자 이상이며 영문과 숫자를 모두 포함해야 합니다.');
+    }
+  } else {
+    if (!username || !password) return showAuthError('아이디와 비밀번호를 입력해주세요.');
+  }
+
+  submit.disabled = true;
+  submit.textContent = '처리 중...';
+
+  try {
+    if (authMode === 'signup') {
+      // 가입 검증 + 중복확인
+      const res = await fetch('/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json();
+      if (!data.ok) { showAuthError(data.error); return; }
+
+      // 가입 정보 임시 저장 → 설문 완료 시 DB 저장
+      localStorage.setItem('rb_username', data.username);
+      localStorage.setItem('rb_pwhash', data.password_hash);
+      localStorage.setItem('rb_session', JSON.stringify({ username: data.username }));
+
+      closeAuth();
+      location.href = 'survey.html';
+    } else {
+      // 로그인
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json();
+      if (!data.ok) { showAuthError(data.error); return; }
+
+      localStorage.setItem('rb_session', JSON.stringify({
+        username, store_code: data.store_code, store_name: data.store_name,
+      }));
+      closeAuth();
+      // 로그인 시 답글 생성 페이지로
+      location.href = `review.html?store=${data.store_code}`;
+    }
+  } catch (err) {
+    showAuthError('오류가 발생했습니다. 다시 시도해주세요.');
+  } finally {
+    submit.disabled = false;
+    submit.textContent = authMode === 'login' ? '로그인' : '회원가입';
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('rb_session');
+  localStorage.removeItem('rb_username');
+  localStorage.removeItem('rb_pwhash');
+  applyAuthUI();
+}
+
+// 초기화
+applyAuthUI();
+</script>
 
 </body>
 </html>
