@@ -338,54 +338,12 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
     </div>
 
     <!-- 시작 버튼 -->
-    <button class="btn-start" onclick="go('auth')">
+    <button class="btn-start" onclick="go('0')">
       시작하기
       <span class="btn-arrow">→</span>
     </button>
 
     <div class="landing-footer">배달의민족 · 쿠팡이츠 사장님 전용</div>
-  </div>
-</div>
-
-
-<!-- ══════════════════════════════
-  AUTH — 회원가입 / 로그인
-══════════════════════════════ -->
-<div class="sec" id="sAuth">
-  <div class="sec-hdr">
-    <span class="sec-num">시작</span>
-    <h2 id="authTitle">회원가입</h2>
-  </div>
-  <p style="font-size:14px;color:var(--dim);margin-bottom:24px;line-height:1.6" id="authDesc">
-    아이디와 비밀번호를 만들어주세요.<br>다음에 이 정보로 로그인하면 내 DNA를 바로 불러올 수 있습니다.
-  </p>
-
-  <div class="field">
-    <div class="flbl">아이디 <span class="req">필수</span></div>
-    <input type="text" id="authUsername" placeholder="영문, 숫자 4~20자" autocomplete="username">
-    <div class="hint">영문과 숫자만 사용 가능합니다</div>
-  </div>
-
-  <div class="field">
-    <div class="flbl">비밀번호 <span class="req">필수</span></div>
-    <input type="password" id="authPassword" placeholder="8자 이상, 영문+숫자 필수" autocomplete="new-password">
-    <div class="hint" id="pwHint">8자 이상이며 영문과 숫자를 모두 포함해야 합니다</div>
-  </div>
-
-  <div id="authError" style="display:none;background:#fff5f5;border:1px solid #ffd0d0;border-radius:8px;padding:12px 15px;font-size:13px;color:#c0392b;margin-bottom:16px"></div>
-
-  <button class="btn btn-next" id="btnAuth" onclick="doSignup()" style="width:100%;max-width:none">
-    가입하고 설문 시작 →
-  </button>
-
-  <div style="text-align:center;margin-top:18px">
-    <span style="font-size:13px;color:var(--muted)">이미 계정이 있으신가요?</span>
-    <button onclick="toggleAuthMode()" id="authToggle" style="background:none;border:none;font-size:13px;color:var(--accent);font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif">로그인</button>
-  </div>
-
-  <div class="nav" style="margin-top:24px">
-    <button class="btn btn-back" onclick="go('main')">← 이전</button>
-    <div></div>
   </div>
 </div>
 
@@ -913,118 +871,9 @@ function getPickedEmojis() {
   return all.length ? all.join(' ') : '미선택';
 }
 
-// ── 회원가입 / 로그인 ──
-let authMode = 'signup'; // 'signup' | 'login'
-let authData = { username: null, password_hash: null };
-
-function toggleAuthMode() {
-  authMode = authMode === 'signup' ? 'login' : 'signup';
-  const title  = document.getElementById('authTitle');
-  const desc   = document.getElementById('authDesc');
-  const btn    = document.getElementById('btnAuth');
-  const toggle = document.getElementById('authToggle');
-  const pwHint = document.getElementById('pwHint');
-  const toggleLabel = document.querySelector('#sAuth span[style*="muted"]');
-
-  hideAuthError();
-  if (authMode === 'login') {
-    title.textContent  = '로그인';
-    desc.innerHTML     = '기존 계정으로 로그인하면<br>등록한 DNA로 바로 답글을 생성할 수 있습니다.';
-    btn.textContent    = '로그인 →';
-    btn.setAttribute('onclick', 'doLogin()');
-    toggle.textContent = '회원가입';
-    pwHint.style.display = 'none';
-    if (toggleLabel) toggleLabel.textContent = '계정이 없으신가요?';
-  } else {
-    title.textContent  = '회원가입';
-    desc.innerHTML     = '아이디와 비밀번호를 만들어주세요.<br>다음에 이 정보로 로그인하면 내 DNA를 바로 불러올 수 있습니다.';
-    btn.textContent    = '가입하고 설문 시작 →';
-    btn.setAttribute('onclick', 'doSignup()');
-    toggle.textContent = '로그인';
-    pwHint.style.display = 'block';
-    if (toggleLabel) toggleLabel.textContent = '이미 계정이 있으신가요?';
-  }
-}
-
-function showAuthError(msg) {
-  const el = document.getElementById('authError');
-  el.textContent = '⚠️ ' + msg;
-  el.style.display = 'block';
-}
-function hideAuthError() {
-  document.getElementById('authError').style.display = 'none';
-}
-
-async function doSignup() {
-  const username = document.getElementById('authUsername').value.trim();
-  const password = document.getElementById('authPassword').value;
-  hideAuthError();
-
-  // 클라이언트 1차 검증
-  if (!/^[a-zA-Z0-9]{4,20}$/.test(username)) {
-    return showAuthError('아이디는 영문, 숫자 4~20자로 입력해주세요.');
-  }
-  if (password.length < 8 || !/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
-    return showAuthError('비밀번호는 8자 이상이며 영문과 숫자를 모두 포함해야 합니다.');
-  }
-
-  const btn = document.getElementById('btnAuth');
-  btn.disabled = true; btn.textContent = '확인 중...';
-
-  try {
-    const res  = await fetch('/api/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
-    const data = await res.json();
-    if (!data.ok) { showAuthError(data.error); return; }
-
-    // 가입 정보 보관 → 설문 완료 시 함께 저장
-    authData.username = data.username;
-    authData.password_hash = data.password_hash;
-    go('0');
-  } catch (err) {
-    showAuthError('오류가 발생했습니다. 다시 시도해주세요.');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '가입하고 설문 시작 →';
-  }
-}
-
-async function doLogin() {
-  const username = document.getElementById('authUsername').value.trim();
-  const password = document.getElementById('authPassword').value;
-  hideAuthError();
-
-  if (!username || !password) return showAuthError('아이디와 비밀번호를 입력해주세요.');
-
-  const btn = document.getElementById('btnAuth');
-  btn.disabled = true; btn.textContent = '로그인 중...';
-
-  try {
-    const res  = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
-    const data = await res.json();
-    if (!data.ok) { showAuthError(data.error); return; }
-
-    // 로그인 성공 → 바로 답글 생성 페이지로
-    location.href = `/review.html?store=${data.store_code}`;
-  } catch (err) {
-    showAuthError('오류가 발생했습니다. 다시 시도해주세요.');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '로그인 →';
-  }
-}
-
 // ── Navigation ──
 const steps = {
   'main': { id:'sMain',   prog:0,   txt:'' },
-  'auth': { id:'sAuth',   prog:5,   txt:'회원가입' },
   '0':    { id:'s0',      prog:10,  txt:'기본 정보' },
   'track':{ id:'sTrack',  prog:30,  txt:'방식 선택' },
   'A1':   { id:'sA1',    prog:60,  txt:'캡처 업로드' },
@@ -1354,8 +1203,8 @@ async function saveToSupabase(prompt) {
         track:        currentTrack,
         dna_prompt:   prompt,
         image_urls:   imageUrls.length > 0 ? imageUrls : null,
-        username:     authData.username,
-        password_hash: authData.password_hash,
+        username:     localStorage.getItem('rb_username') || null,
+        password_hash: localStorage.getItem('rb_pwhash') || null,
       }),
     });
 
