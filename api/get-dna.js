@@ -9,7 +9,7 @@ export default async function handler(req, res) {
 
     if (!store) return res.status(400).json({ ok: false, error: 'store 코드가 없습니다.' });
 
-    const query = `${process.env.SUPABASE_URL}/rest/v1/owners?store_code=eq.${store}&select=id,store_name,dna_prompt,image_urls,store_code`;
+    const query = `${process.env.SUPABASE_URL}/rest/v1/owners?store_code=eq.${store}&select=id,store_name,dna_prompt,image_urls,store_code,plan,usage_count,usage_month`;
 
     const supaRes = await fetch(query, {
       headers: {
